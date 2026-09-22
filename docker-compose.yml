@@ -1,0 +1,21 @@
+services:
+  postgres:
+    image: postgres:16-alpine
+    container_name: bizflow-postgres
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: bizflow_admin
+      POSTGRES_PASSWORD: bizflow_admin
+      POSTGRES_DB: bizflow
+    ports:
+      - "5432:5432"
+    volumes:
+      - bizflow_pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U bizflow_admin -d bizflow"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+volumes:
+  bizflow_pgdata:
