@@ -4,6 +4,9 @@ import { db } from "@/lib/db";
 import { recordPaymentSchema } from "@/lib/validations";
 import Decimal from "decimal.js";
 
+export const runtime = "nodejs";
+export const dynamic = "force-dynamic";
+
 export async function POST(req: Request) {
   try {
     const { organization, session } = await requireTenant();

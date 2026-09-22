@@ -108,3 +108,22 @@ Open [http://localhost:3000](http://localhost:3000) in your browser.
 npm run test
 ```
 All unit tests and end-to-end business workflow integration tests run automatically.
+
+---
+
+## Deploy (Vercel + Neon)
+
+1. Neon is already the production database. Keep `sslmode=require` on `DATABASE_URL`.
+2. In [Vercel](https://vercel.com), import the GitHub repo (`williammaddy/Saas_SB`) or run `npx vercel`.
+3. Set environment variables for Production (and Preview):
+
+| Name | Value |
+|---|---|
+| `DATABASE_URL` | Neon connection string (`sslmode=require`) |
+| `JWT_SECRET` | Long random secret (32+ characters) |
+| `NEXT_PUBLIC_APP_URL` | `https://your-app.vercel.app` (update after first deploy) |
+
+4. Deploy. Prisma Client is generated in `postinstall` / `npm run build`.
+5. Sign in with `demo@bizflow.app` / `password123`.
+
+Do not commit `.env`. Rotate the Neon password if it was ever pasted in chat.
