@@ -122,11 +122,17 @@ export default function InvoicesPage() {
                           {format(new Date(inv.invoiceDate), "dd MMM yyyy")}
                         </td>
                         <td className="py-3.5 px-4 font-medium text-slate-900">
-                          {inv.customerName}
-                          {inv.customerPhone && (
-                            <span className="block text-[10px] text-slate-400 font-normal">
-                              {inv.customerPhone}
-                            </span>
+                          {inv.customerName && inv.customerName.trim() !== "" && inv.customerName.trim() !== "Walk-in Customer" ? (
+                            <>
+                              {inv.customerName}
+                              {inv.customerPhone && (
+                                <span className="block text-[10px] text-slate-400 font-normal">
+                                  {inv.customerPhone}
+                                </span>
+                              )}
+                            </>
+                          ) : (
+                            <span className="text-slate-400 font-normal">-</span>
                           )}
                         </td>
                         <td className="py-3.5 px-4 text-right font-mono font-bold text-slate-900">

@@ -30,22 +30,65 @@ body {
   background: #94a3b8;
 }
 
-/* Print specific optimizations */
+/* Print specific optimizations for multi-page invoices */
 @media print {
-  body {
+  @page {
+    size: A4 portrait;
+    margin: 10mm 12mm 12mm 12mm;
+  }
+
+  html, body {
     background: white !important;
     color: black !important;
+    font-size: 12px !important;
+    margin: 0 !important;
+    padding: 0 !important;
+    -webkit-print-color-adjust: exact !important;
+    print-color-adjust: exact !important;
   }
-  .no-print {
+
+  /* Hide app navigation header, sidebar, action buttons */
+  .no-print, header, nav, aside {
     display: none !important;
   }
+
   .print-only {
     display: block !important;
   }
+
   .print-container {
     padding: 0 !important;
     margin: 0 !important;
     box-shadow: none !important;
     border: none !important;
+    width: 100% !important;
+    max-width: 100% !important;
+    background: white !important;
+    border-radius: 0 !important;
+  }
+
+  /* Multi-page line-by-line pagination rules */
+  table {
+    page-break-after: auto;
+    width: 100% !important;
+    border-collapse: collapse !important;
+  }
+
+  tr {
+    page-break-inside: avoid !important;
+    break-inside: avoid !important;
+  }
+
+  thead {
+    display: table-header-group !important; /* Repeats table header on every page */
+  }
+
+  tfoot {
+    display: table-footer-group !important;
+  }
+
+  .avoid-break {
+    page-break-inside: avoid !important;
+    break-inside: avoid !important;
   }
 }

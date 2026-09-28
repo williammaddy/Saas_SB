@@ -1,13 +1,12 @@
 "use client";
 
-import React, { useState, useEffect, useMemo } from "react";
+import React, { useState, useEffect, useMemo, useRef } from "react";
 import { useRouter } from "next/navigation";
 import { Card, CardContent } from "@/components/ui/Card";
 import { Button } from "@/components/ui/Button";
 import { Input } from "@/components/ui/Input";
 import { Select } from "@/components/ui/Select";
 import { Modal } from "@/components/ui/Modal";
-import { Badge } from "@/components/ui/Badge";
 import { formatCurrency, calculateBill } from "@/lib/billing/calculator";
 import {
   Search,
@@ -22,6 +21,10 @@ import {
   Package,
   Scissors,
   AlertCircle,
+  Barcode,
+  Grid,
+  FileSpreadsheet,
+  Check,
 } from "lucide-react";
 
 interface QuickBillProps {
@@ -32,6 +35,8 @@ interface SelectedItem {
   itemId?: string;
   itemType: "PRODUCT" | "SERVICE";
   name: string;
+  sku?: string | null;
+  barcode?: string | null;
   quantity: number;
   unit: string;
   unitPrice: number;
@@ -42,6 +47,7 @@ interface SelectedItem {
 
 export function QuickBill({ organization }: QuickBillProps) {
   const router = useRouter();
+  const searchInputRef = useRef<HTMLInputElement>(null);
 
   // Data states
   const [customers, setCustomers] = useState<any[]>([]);
@@ -50,7 +56,6 @@ export function QuickBill({ organization }: QuickBillProps) {
 
   // Bill customer state
   const [selectedCustomerId, setSelectedCustomerId] = useState<string>("WALK_IN");
-  const [customerSearch, setCustomerSearch] = useState("");
 
   // Quick Add Customer modal
   const [isAddCustomerOpen, setIsAddCustomerOpen] = useState(false);
@@ -59,21 +64,58 @@ export function QuickBill({ organization }: QuickBillProps) {
   const [newCustGstin, setNewCustGstin] = useState("");
   const [creatingCustomer, setCreatingCustomer] = useState(false);
 
-  // Line items state
-  const [selectedItems, setSelectedItems] = useState<SelectedItem[]>([]);
-  const [itemSearchQuery, setItemSearchQuery] = useState("");
+  // Top Barcode Search Input state
+  const [searchQuery, setSearchQuery] = useState("");
+  const [selectedIndex, setSelectedIndex] = useState(0);
+  const [isDropdownOpen, setIsDropdownOpen] = useState(false);
+
+  // Line items state (Initial spreadsheet rows for Excel-style instant billing)
+  const [selectedItems, setSelectedItems] = useState<SelectedItem[]>([
+    {
+      itemType: "PRODUCT",
+      name: "",
+      quantity: 1,
+      unit: "pcs",
+      unitPrice: 0,
+      discountAmount: 0,
+      taxRate: organization.defaultTaxRate ? Number(organization.defaultTaxRate) : 0,
+    },
+    {
+      itemType: "PRODUCT",
+      name: "",
+      quantity: 1,
+      unit: "pcs",
+      unitPrice: 0,
+      discountAmount: 0,
+      taxRate: organization.defaultTaxRate ? Number(organization.defaultTaxRate) : 0,
+    },
+    {
+      itemType: "PRODUCT",
+      name: "",
+      quantity: 1,
+      unit: "pcs",
+      unitPrice: 0,
+      discountAmount: 0,
+      taxRate: organization.defaultTaxRate ? Number(organization.defaultTaxRate) : 0,
+    },
+  ]);
+
+  // Track active autocomplete dropdown row index for in-cell product search
+  const [activeCellRowIndex, setActiveCellRowIndex] = useState<number | null>(null);
 
   // Bill level discount and payments
   const [discountType, setDiscountType] = useState<"FIXED" | "PERCENTAGE">("FIXED");
   const [discountValue, setDiscountValue] = useState<string>("0");
   const [paymentMethod, setPaymentMethod] = useState<string>("CASH");
-  const [isCredit, setIsCredit] = useState(false); // If credit: paidAmount = 0
+  const [isCredit, setIsCredit] = useState(false);
   const [customPaidAmount, setCustomPaidAmount] = useState<string>("");
+  const [cashReceived, setCashReceived] = useState<string>("");
   const [notes, setNotes] = useState("");
 
   // Submission state
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [stockWarning, setStockWarning] = useState<string | null>(null);
 
   // Load Customers & Items on mount
   useEffect(() => {
@@ -81,7 +123,7 @@ export function QuickBill({ organization }: QuickBillProps) {
       try {
         const [custRes, itemsRes] = await Promise.all([
           fetch("/api/customers"),
-          fetch("/api/items"),
+          fetch("/api/items?status=ACTIVE"),
         ]);
         const custData = await custRes.json();
         const itemsData = await itemsRes.json();
@@ -103,18 +145,37 @@ export function QuickBill({ organization }: QuickBillProps) {
     return customers.find((c) => c.id === selectedCustomerId) || null;
   }, [selectedCustomerId, customers]);
 
-  // Real-time calculation using centralized engine
+  // Filter valid line items for financial calculations (ignore completely empty draft rows)
+  const validBillingItems = useMemo(() => {
+    return selectedItems.filter(
+      (it) => it.name.trim() !== "" || it.unitPrice > 0 || (it.itemId && it.itemId !== "")
+    );
+  }, [selectedItems]);
+
+  // Filtered top barcode suggestions
+  const matchingSuggestions = useMemo(() => {
+    if (!searchQuery.trim()) return [];
+    const q = searchQuery.toLowerCase().trim();
+    return itemsList.filter((it) => {
+      const matchName = it.name.toLowerCase().includes(q);
+      const matchSku = it.sku && it.sku.toLowerCase().includes(q);
+      const matchBarcode = it.barcode && it.barcode.toLowerCase().includes(q);
+      return matchName || matchSku || matchBarcode;
+    });
+  }, [itemsList, searchQuery]);
+
+  // Real-time financial calculations
   const calculation = useMemo(() => {
     return calculateBill({
-      items: selectedItems.map((it) => ({
+      items: validBillingItems.map((it) => ({
         itemId: it.itemId,
         itemType: it.itemType,
-        name: it.name,
-        quantity: it.quantity,
-        unit: it.unit,
-        unitPrice: it.unitPrice,
-        discountAmount: it.discountAmount,
-        taxRate: organization.gstEnabled ? it.taxRate : 0,
+        name: it.name || "Item",
+        quantity: it.quantity || 1,
+        unit: it.unit || "pcs",
+        unitPrice: it.unitPrice || 0,
+        discountAmount: it.discountAmount || 0,
+        taxRate: organization.gstEnabled ? it.taxRate || 0 : 0,
       })),
       taxConfig: {
         gstEnabled: organization.gstEnabled,
@@ -127,10 +188,10 @@ export function QuickBill({ organization }: QuickBillProps) {
         ? 0
         : customPaidAmount !== ""
         ? Number(customPaidAmount)
-        : undefined, // undefined will auto-calculate in next step
+        : undefined,
     });
   }, [
-    selectedItems,
+    validBillingItems,
     organization,
     activeCustomer,
     discountType,
@@ -139,7 +200,7 @@ export function QuickBill({ organization }: QuickBillProps) {
     customPaidAmount,
   ]);
 
-  // Actual paid amount defaults to grand total if not credit or custom
+  // Actual paid amount
   const actualPaidAmount = useMemo(() => {
     if (isCredit) return 0;
     if (customPaidAmount !== "") return Math.min(calculation.grandTotal, Number(customPaidAmount) || 0);
@@ -150,59 +211,212 @@ export function QuickBill({ organization }: QuickBillProps) {
     return Math.max(0, calculation.grandTotal - actualPaidAmount);
   }, [calculation.grandTotal, actualPaidAmount]);
 
-  // Add Item to Bill
-  const addItemToBill = (item: any) => {
-    const existingIndex = selectedItems.findIndex((it) => it.itemId === item.id);
-    if (existingIndex >= 0) {
-      // Increment quantity
+  // Cash change calculation
+  const cashChange = useMemo(() => {
+    if (paymentMethod !== "CASH" || isCredit || !cashReceived) return 0;
+    const received = Number(cashReceived) || 0;
+    return Math.max(0, received - calculation.grandTotal);
+  }, [paymentMethod, isCredit, cashReceived, calculation.grandTotal]);
+
+  // Stock limit validation
+  useEffect(() => {
+    let warning = null;
+    for (const item of validBillingItems) {
+      if (
+        item.itemType === "PRODUCT" &&
+        item.availableStock !== null &&
+        item.availableStock !== undefined
+      ) {
+        if (item.quantity > item.availableStock) {
+          warning = `Stock alert for "${item.name}". Available: ${item.availableStock}, Billing: ${item.quantity}`;
+          break;
+        }
+      }
+    }
+    setStockWarning(warning);
+  }, [validBillingItems]);
+
+  // Add Item from Top Search / Barcode to Table
+  const addItemFromCatalog = (catalogItem: any) => {
+    setError(null);
+    // Find first blank row in table to populate, or append new row
+    const emptyRowIndex = selectedItems.findIndex((it) => !it.name.trim() && it.unitPrice === 0);
+
+    const newItemObj: SelectedItem = {
+      itemId: catalogItem.id,
+      itemType: catalogItem.type,
+      name: catalogItem.name,
+      sku: catalogItem.sku,
+      barcode: catalogItem.barcode,
+      quantity: 1,
+      unit: catalogItem.unit || (catalogItem.type === "SERVICE" ? "hr" : "pcs"),
+      unitPrice: Number(catalogItem.sellingPrice),
+      discountAmount: 0,
+      taxRate: Number(catalogItem.taxRate || 0),
+      availableStock: catalogItem.type === "PRODUCT" ? (catalogItem.stock !== null ? Number(catalogItem.stock) : null) : null,
+    };
+
+    if (emptyRowIndex >= 0) {
       const updated = [...selectedItems];
-      updated[existingIndex].quantity += 1;
+      updated[emptyRowIndex] = newItemObj;
       setSelectedItems(updated);
     } else {
-      setSelectedItems([
-        ...selectedItems,
-        {
-          itemId: item.id,
-          itemType: item.type,
-          name: item.name,
-          quantity: 1,
-          unit: item.unit || (item.type === "SERVICE" ? "hr" : "pcs"),
-          unitPrice: Number(item.sellingPrice),
-          discountAmount: 0,
-          taxRate: Number(item.taxRate || 0),
-          availableStock: item.type === "PRODUCT" ? Number(item.stock) : null,
-        },
-      ]);
+      setSelectedItems([...selectedItems, newItemObj]);
     }
+
+    setSearchQuery("");
+    setIsDropdownOpen(false);
   };
 
-  // Add Custom / Ad-hoc Item
-  const addCustomItem = () => {
-    setSelectedItems([
-      ...selectedItems,
-      {
+  // Add Blank Excel Row and focus it immediately
+  const addBlankRowAndFocus = () => {
+    setSelectedItems((prev) => {
+      const newRow: SelectedItem = {
         itemType: "PRODUCT",
-        name: "Custom Item",
+        name: "",
         quantity: 1,
         unit: "pcs",
-        unitPrice: 100,
+        unitPrice: 0,
         discountAmount: 0,
         taxRate: organization.defaultTaxRate ? Number(organization.defaultTaxRate) : 0,
-      },
-    ]);
+      };
+      const nextList = [...prev, newRow];
+      const newIdx = nextList.length - 1;
+      setTimeout(() => {
+        document.getElementById(`row-name-${newIdx}`)?.focus();
+      }, 50);
+      return nextList;
+    });
   };
 
-  const updateItem = (index: number, field: keyof SelectedItem, value: any) => {
+  // Update cell field directly (Excel Spreadsheet style)
+  const updateCell = (index: number, field: keyof SelectedItem, value: any) => {
     const updated = [...selectedItems];
     updated[index] = { ...updated[index], [field]: value };
     setSelectedItems(updated);
   };
 
-  const removeItem = (index: number) => {
+  // Select catalog item into specific cell row
+  const selectCatalogIntoRow = (rowIndex: number, catalogItem: any) => {
+    const updated = [...selectedItems];
+    updated[rowIndex] = {
+      itemId: catalogItem.id,
+      itemType: catalogItem.type,
+      name: catalogItem.name,
+      sku: catalogItem.sku,
+      barcode: catalogItem.barcode,
+      quantity: updated[rowIndex]?.quantity || 1,
+      unit: catalogItem.unit || (catalogItem.type === "SERVICE" ? "hr" : "pcs"),
+      unitPrice: Number(catalogItem.sellingPrice),
+      discountAmount: updated[rowIndex]?.discountAmount || 0,
+      taxRate: Number(catalogItem.taxRate || 0),
+      availableStock: catalogItem.type === "PRODUCT" ? (catalogItem.stock !== null ? Number(catalogItem.stock) : null) : null,
+    };
+    setSelectedItems(updated);
+    setActiveCellRowIndex(null);
+
+    // Auto focus quantity input after selecting product from catalog suggestion
+    setTimeout(() => {
+      document.getElementById(`row-qty-${rowIndex}`)?.focus();
+    }, 50);
+  };
+
+  // Keydown navigation across grid rows for fast senior-friendly billing (Press Enter moves to next row)
+  const handleCellKeyDown = (
+    e: React.KeyboardEvent<HTMLInputElement>,
+    rowIndex: number,
+    field: "name" | "qty" | "unit" | "price" | "discount" | "tax",
+    hasSuggestions: boolean = false
+  ) => {
+    if (e.key === "Enter") {
+      // If suggestions dropdown is actively shown on item name input, let the dropdown select first
+      if (field === "name" && hasSuggestions) {
+        return;
+      }
+      e.preventDefault();
+
+      if (field === "name") {
+        document.getElementById(`row-qty-${rowIndex}`)?.focus();
+      } else if (field === "qty") {
+        document.getElementById(`row-price-${rowIndex}`)?.focus();
+      } else if (field === "unit") {
+        document.getElementById(`row-price-${rowIndex}`)?.focus();
+      } else if (field === "price" || field === "discount" || field === "tax") {
+        const nextIdx = rowIndex + 1;
+        if (nextIdx < selectedItems.length) {
+          document.getElementById(`row-name-${nextIdx}`)?.focus();
+        } else {
+          addBlankRowAndFocus();
+        }
+      }
+    } else if (e.key === "ArrowDown" && field !== "name") {
+      e.preventDefault();
+      const nextIdx = rowIndex + 1;
+      if (nextIdx < selectedItems.length) {
+        document.getElementById(`row-${field}-${nextIdx}`)?.focus();
+      } else {
+        addBlankRowAndFocus();
+      }
+    } else if (e.key === "ArrowUp" && field !== "name" && rowIndex > 0) {
+      e.preventDefault();
+      document.getElementById(`row-${field}-${rowIndex - 1}`)?.focus();
+    }
+  };
+
+  // Remove row
+  const removeRow = (index: number) => {
+    if (selectedItems.length <= 1) {
+      // Keep at least one empty row
+      setSelectedItems([
+        {
+          itemType: "PRODUCT",
+          name: "",
+          quantity: 1,
+          unit: "pcs",
+          unitPrice: 0,
+          discountAmount: 0,
+          taxRate: organization.defaultTaxRate ? Number(organization.defaultTaxRate) : 0,
+        },
+      ]);
+      return;
+    }
     setSelectedItems(selectedItems.filter((_, i) => i !== index));
   };
 
-  // Handle Quick Add Customer
+  // Top search keydown handler
+  const handleTopSearchKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
+    if (e.key === "ArrowDown") {
+      e.preventDefault();
+      if (matchingSuggestions.length > 0) {
+        setSelectedIndex((prev) => (prev + 1) % matchingSuggestions.length);
+      }
+    } else if (e.key === "ArrowUp") {
+      e.preventDefault();
+      if (matchingSuggestions.length > 0) {
+        setSelectedIndex((prev) => (prev - 1 + matchingSuggestions.length) % matchingSuggestions.length);
+      }
+    } else if (e.key === "Enter") {
+      e.preventDefault();
+      if (isDropdownOpen && matchingSuggestions.length > 0) {
+        const target = matchingSuggestions[selectedIndex] || matchingSuggestions[0];
+        if (target) addItemFromCatalog(target);
+      }
+    }
+  };
+
+  // Keyboard shortcut Ctrl+Enter / F2 for complete sale
+  useEffect(() => {
+    const handleGlobalKeyDown = (e: KeyboardEvent) => {
+      if ((e.ctrlKey && e.key === "Enter") || e.key === "F2") {
+        e.preventDefault();
+        handleGenerateBill();
+      }
+    };
+    window.addEventListener("keydown", handleGlobalKeyDown);
+    return () => window.removeEventListener("keydown", handleGlobalKeyDown);
+  }, [validBillingItems, calculation, activeCustomer, discountType, discountValue, paymentMethod, isCredit, customPaidAmount, notes]);
+
+  // Quick Add Customer handler
   const handleQuickAddCustomer = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!newCustName.trim()) return;
@@ -235,8 +449,8 @@ export function QuickBill({ organization }: QuickBillProps) {
 
   // Generate Bill / Checkout
   const handleGenerateBill = async () => {
-    if (selectedItems.length === 0) {
-      setError("Please add at least one product or service to create a bill");
+    if (validBillingItems.length === 0) {
+      setError("Please type or select at least one product/item to create a bill");
       return;
     }
 
@@ -246,7 +460,7 @@ export function QuickBill({ organization }: QuickBillProps) {
     try {
       const payload = {
         customerId: selectedCustomerId === "WALK_IN" ? null : selectedCustomerId,
-        customerName: activeCustomer?.name || "Walk-in Customer",
+        customerName: activeCustomer?.name || undefined,
         customerPhone: activeCustomer?.phone || undefined,
         customerEmail: activeCustomer?.email || undefined,
         customerAddress: activeCustomer?.address || undefined,
@@ -257,15 +471,15 @@ export function QuickBill({ organization }: QuickBillProps) {
         paymentMethod: isCredit ? "CREDIT" : paymentMethod,
         paidAmount: actualPaidAmount,
         notes: notes || undefined,
-        items: selectedItems.map((it) => ({
+        items: validBillingItems.map((it) => ({
           itemId: it.itemId || undefined,
           itemType: it.itemType,
-          name: it.name,
-          quantity: it.quantity,
-          unit: it.unit,
-          unitPrice: it.unitPrice,
-          discountAmount: it.discountAmount,
-          taxRate: it.taxRate,
+          name: it.name.trim() || "Item",
+          quantity: it.quantity || 1,
+          unit: it.unit || "pcs",
+          unitPrice: Number(it.unitPrice) || 0,
+          discountAmount: Number(it.discountAmount) || 0,
+          taxRate: Number(it.taxRate) || 0,
         })),
       };
 
@@ -280,7 +494,6 @@ export function QuickBill({ organization }: QuickBillProps) {
         throw new Error(data.error || "Failed to generate bill");
       }
 
-      // Success: Navigate directly to the generated invoice!
       router.push(`/invoices/${data.invoice.id}`);
     } catch (err: any) {
       setError(err.message || "Failed to generate bill");
@@ -288,40 +501,97 @@ export function QuickBill({ organization }: QuickBillProps) {
     }
   };
 
-  // Filter items for quick picker
-  const filteredCatalogItems = useMemo(() => {
-    if (!itemSearchQuery.trim()) return itemsList.slice(0, 12);
-    const q = itemSearchQuery.toLowerCase();
-    return itemsList.filter(
-      (it) =>
-        it.name.toLowerCase().includes(q) ||
-        (it.sku && it.sku.toLowerCase().includes(q)) ||
-        (it.category && it.category.toLowerCase().includes(q))
-    );
-  }, [itemsList, itemSearchQuery]);
-
   return (
-    <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
-      {/* Left Column: Customer & Line Items (8 cols on lg) */}
-      <div className="lg:col-span-8 space-y-6">
-        {/* Customer Selector Card */}
-        <Card>
-          <CardContent className="p-4 sm:p-5">
-            <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 mb-3">
+    <div className="space-y-4">
+      {/* ============================================================ */}
+      {/* TOP BARCODE / SKU QUICK SCAN BAR */}
+      {/* ============================================================ */}
+      <div className="relative">
+        <div className="flex items-center gap-2 bg-slate-900 text-white p-2.5 sm:p-3 rounded-2xl shadow-md border border-slate-800">
+          <div className="pl-2 text-indigo-400">
+            <Barcode className="w-5 h-5" />
+          </div>
+          <input
+            ref={searchInputRef}
+            type="text"
+            className="flex-1 bg-transparent text-white placeholder-slate-400 text-sm font-mono focus:outline-none border-0 ring-0 px-2"
+            placeholder="Scan Barcode or Search Inventory Catalog... (Optional quick add)"
+            value={searchQuery}
+            onChange={(e) => setSearchQuery(e.target.value)}
+            onKeyDown={handleTopSearchKeyDown}
+            onFocus={() => searchQuery.trim() && setIsDropdownOpen(true)}
+          />
+          {searchQuery && (
+            <button
+              type="button"
+              onClick={() => setSearchQuery("")}
+              className="text-xs text-slate-400 hover:text-white px-2"
+            >
+              Clear
+            </button>
+          )}
+        </div>
+
+        {/* Catalog Suggestions Dropdown */}
+        {isDropdownOpen && matchingSuggestions.length > 0 && (
+          <div className="absolute z-50 left-0 right-0 top-full mt-2 bg-white rounded-xl shadow-2xl border border-slate-200 overflow-hidden max-h-72 overflow-y-auto divide-y divide-slate-100">
+            {matchingSuggestions.map((item, idx) => (
+              <div
+                key={item.id}
+                onClick={() => addItemFromCatalog(item)}
+                className={`p-3 cursor-pointer flex items-center justify-between hover:bg-indigo-50 transition-colors ${
+                  idx === selectedIndex ? "bg-indigo-50 text-indigo-900 font-bold" : "text-slate-800"
+                }`}
+              >
+                <div className="flex items-center gap-3">
+                  <span className="font-bold text-xs">{item.name}</span>
+                  {item.sku && <span className="text-[10px] text-slate-400 font-mono">SKU: {item.sku}</span>}
+                </div>
+                <span className="font-mono font-bold text-xs text-indigo-600">
+                  {formatCurrency(item.sellingPrice, organization.currency)}
+                </span>
+              </div>
+            ))}
+          </div>
+        )}
+      </div>
+
+      {/* ============================================================ */}
+      {/* EXCEL SPREADSHEET STYLE BILLING GRID (MAIN BILL COUNTER) */}
+      {/* ============================================================ */}
+      <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
+        {/* Left Column: Customer & Excel Billing Grid (8 cols) */}
+        <div className="lg:col-span-8 space-y-4">
+          {/* Customer Bar */}
+          <Card className="border-slate-200">
+            <CardContent className="p-3.5 flex flex-wrap items-center justify-between gap-3">
               <div className="flex items-center gap-2">
-                <span className="text-xs font-bold text-slate-700 uppercase tracking-wider">Customer</span>
-                <span className="text-xs text-slate-400">|</span>
+                <span className="text-xs font-bold text-slate-500 uppercase tracking-wider">Customer:</span>
                 <button
                   type="button"
                   onClick={() => setSelectedCustomerId("WALK_IN")}
-                  className={`text-xs px-2.5 py-1 rounded-full font-medium transition-colors ${
+                  className={`text-xs px-3 py-1.5 rounded-lg font-bold transition-all ${
                     selectedCustomerId === "WALK_IN"
-                      ? "bg-indigo-600 text-white shadow-sm"
+                      ? "bg-indigo-600 text-white shadow"
                       : "bg-slate-100 text-slate-600 hover:bg-slate-200"
                   }`}
                 >
-                  Walk-in Customer
+                  Direct Customer
                 </button>
+              </div>
+
+              <div className="flex items-center gap-2 flex-1 max-w-xs">
+                <Select
+                  value={selectedCustomerId}
+                  onChange={(e) => setSelectedCustomerId(e.target.value)}
+                  options={[
+                    { value: "WALK_IN", label: "Direct Customer (Unregistered)" },
+                    ...customers.map((c) => ({
+                      value: c.id,
+                      label: `${c.name} ${c.phone ? `(${c.phone})` : ""}`,
+                    })),
+                  ]}
+                />
               </div>
 
               <Button
@@ -331,444 +601,460 @@ export function QuickBill({ organization }: QuickBillProps) {
                 icon={<UserPlus className="w-3.5 h-3.5" />}
                 onClick={() => setIsAddCustomerOpen(true)}
               >
-                + New Customer
+                + Customer
               </Button>
+            </CardContent>
+          </Card>
+
+          {/* EXCEL SPREADSHEET TABLE CARD (Senior Friendly High Visibility UI) */}
+          <Card className="border-2 border-slate-300 shadow-md bg-white overflow-hidden rounded-2xl">
+            <div className="p-4 bg-slate-900 text-white flex flex-wrap items-center justify-between gap-2">
+              <div className="flex items-center gap-3">
+                <FileSpreadsheet className="w-5 h-5 text-indigo-400" />
+                <h3 className="text-sm sm:text-base font-extrabold uppercase tracking-wide text-white">
+                  Excel Billing Sheet ({validBillingItems.length} active items)
+                </h3>
+              </div>
+              <span className="text-xs font-semibold text-indigo-300 bg-indigo-950/80 px-3 py-1 rounded-full border border-indigo-700/50">
+                Senior Friendly • Press ENTER to jump to next row
+              </span>
             </div>
 
-            {/* Customer Dropdown */}
-            {selectedCustomerId !== "WALK_IN" && (
-              <div className="space-y-2">
-                <Select
-                  value={selectedCustomerId}
-                  onChange={(e) => setSelectedCustomerId(e.target.value)}
-                  options={[
-                    { value: "WALK_IN", label: "Walk-in Customer" },
-                    ...customers.map((c) => ({
-                      value: c.id,
-                      label: `${c.name} ${c.phone ? `(${c.phone})` : ""}`,
-                    })),
-                  ]}
-                />
-                {activeCustomer && (
-                  <div className="p-3 bg-slate-50 rounded-lg text-xs flex flex-wrap gap-x-4 gap-y-1 text-slate-600 border border-slate-100">
-                    {activeCustomer.phone && <span>Phone: {activeCustomer.phone}</span>}
-                    {activeCustomer.gstin && <span>GSTIN: {activeCustomer.gstin}</span>}
-                    {activeCustomer.outstanding > 0 && (
-                      <span className="text-amber-700 font-semibold">
-                        Outstanding: {formatCurrency(activeCustomer.outstanding, organization.currency)}
-                      </span>
+            {stockWarning && (
+              <div className="p-3 bg-amber-50 border-b border-amber-300 text-amber-900 text-xs sm:text-sm font-bold flex items-center gap-2">
+                <AlertCircle className="w-5 h-5 shrink-0 text-amber-600" />
+                <span>{stockWarning}</span>
+              </div>
+            )}
+
+            <CardContent className="p-0 overflow-x-auto">
+              <table className="w-full text-sm border-collapse">
+                <thead>
+                  <tr className="bg-slate-200/90 border-b-2 border-slate-300 text-slate-900 font-extrabold text-xs sm:text-sm tracking-wide text-left uppercase">
+                    <th className="py-3 px-3 w-12 text-center border-r border-slate-300">No.</th>
+                    <th className="py-3 px-3 border-r border-slate-300 min-w-[260px]">
+                      Product / Item Name (Type Anything)
+                    </th>
+                    <th className="py-3 px-2 w-28 text-center border-r border-slate-300">Qty</th>
+                    <th className="py-3 px-2 w-24 text-center border-r border-slate-300">Unit</th>
+                    <th className="py-3 px-3 w-36 text-right border-r border-slate-300">Price (₹)</th>
+                    <th className="py-3 px-2 w-28 text-right border-r border-slate-300">Discount (₹)</th>
+                    {organization.gstEnabled && (
+                      <th className="py-3 px-2 w-24 text-center border-r border-slate-300">GST %</th>
                     )}
+                    <th className="py-3 px-3 text-right font-black border-r border-slate-300 w-36">
+                      Total (₹)
+                    </th>
+                    <th className="py-3 px-2 w-12 text-center"></th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-slate-300 bg-white">
+                  {selectedItems.map((item, idx) => {
+                    const qty = item.quantity || 0;
+                    const price = item.unitPrice || 0;
+                    const discount = item.discountAmount || 0;
+                    const lineTaxable = Math.max(0, qty * price - discount);
+                    const lineTax = organization.gstEnabled ? (lineTaxable * (item.taxRate || 0)) / 100 : 0;
+                    const lineTotal = lineTaxable + lineTax;
+
+                    // Filter inline cell suggestions if user is typing in item name cell
+                    const cellSuggestions =
+                      item.name.trim() && !item.itemId
+                        ? itemsList.filter((it) => it.name.toLowerCase().includes(item.name.toLowerCase().trim())).slice(0, 5)
+                        : [];
+
+                    return (
+                      <tr key={idx} className="hover:bg-indigo-50/60 transition-colors h-14">
+                        {/* Row Number */}
+                        <td className="py-2.5 px-3 text-center font-black text-sm text-slate-600 font-mono border-r border-slate-300 bg-slate-100/70">
+                          {idx + 1}
+                        </td>
+
+                        {/* Product / Item Name Cell (Direct Typing + Optional Auto-suggest + Enter navigation) */}
+                        <td className="py-2 px-2 border-r border-slate-300 relative">
+                          <input
+                            id={`row-name-${idx}`}
+                            type="text"
+                            className="w-full font-bold text-sm sm:text-base text-slate-900 bg-slate-50/60 border-2 border-slate-300 hover:border-slate-400 focus:border-indigo-600 focus:bg-white rounded-lg px-3 py-2 transition-all focus:outline-none placeholder:text-slate-400 shadow-xs"
+                            placeholder="Type any product / service name..."
+                            value={item.name}
+                            onChange={(e) => {
+                              updateCell(idx, "name", e.target.value);
+                              // Clear matched itemId if user edits typed text
+                              if (item.itemId) updateCell(idx, "itemId", undefined);
+                              setActiveCellRowIndex(idx);
+                            }}
+                            onFocus={() => setActiveCellRowIndex(idx)}
+                            onKeyDown={(e) => handleCellKeyDown(e, idx, "name", cellSuggestions.length > 0)}
+                          />
+
+                          {/* Inline Catalog Suggestions Dropdown */}
+                          {activeCellRowIndex === idx && cellSuggestions.length > 0 && (
+                            <div className="absolute z-50 left-2 right-2 top-full mt-1 bg-white rounded-xl shadow-2xl border-2 border-indigo-200 divide-y divide-slate-100 max-h-56 overflow-y-auto">
+                              <div className="px-3 py-1.5 bg-indigo-50 text-xs font-extrabold text-indigo-900 uppercase tracking-wide">
+                                Catalog Quick Match:
+                              </div>
+                              {cellSuggestions.map((catItem) => (
+                                <div
+                                  key={catItem.id}
+                                  onClick={() => selectCatalogIntoRow(idx, catItem)}
+                                  className="p-3 cursor-pointer hover:bg-indigo-100/70 flex justify-between items-center text-sm font-semibold text-slate-900 transition-colors"
+                                >
+                                  <span className="font-bold text-slate-900">{catItem.name}</span>
+                                  <span className="font-mono text-indigo-700 font-extrabold">
+                                    ₹{catItem.sellingPrice}
+                                  </span>
+                                </div>
+                              ))}
+                            </div>
+                          )}
+                        </td>
+
+                        {/* Quantity Cell */}
+                        <td className="py-2 px-2 border-r border-slate-300 text-center">
+                          <input
+                            id={`row-qty-${idx}`}
+                            type="number"
+                            min="1"
+                            className="w-full text-center font-black text-sm sm:text-base text-slate-900 bg-slate-50/60 border-2 border-slate-300 hover:border-slate-400 focus:border-indigo-600 focus:bg-white rounded-lg px-2 py-2 transition-all font-mono focus:outline-none shadow-xs"
+                            value={item.quantity}
+                            onChange={(e) => updateCell(idx, "quantity", Math.max(1, Number(e.target.value) || 1))}
+                            onKeyDown={(e) => handleCellKeyDown(e, idx, "qty")}
+                          />
+                        </td>
+
+                        {/* Unit Cell */}
+                        <td className="py-2 px-2 border-r border-slate-300">
+                          <input
+                            id={`row-unit-${idx}`}
+                            type="text"
+                            className="w-full text-center font-bold text-xs sm:text-sm text-slate-800 bg-slate-50/60 border-2 border-slate-300 hover:border-slate-400 focus:border-indigo-600 focus:bg-white rounded-lg px-1.5 py-2 font-mono focus:outline-none shadow-xs"
+                            value={item.unit}
+                            onChange={(e) => updateCell(idx, "unit", e.target.value)}
+                            onKeyDown={(e) => handleCellKeyDown(e, idx, "unit")}
+                            placeholder="pcs"
+                          />
+                        </td>
+
+                        {/* Unit Price Cell */}
+                        <td className="py-2 px-2 border-r border-slate-300 text-right">
+                          <input
+                            id={`row-price-${idx}`}
+                            type="number"
+                            step="0.01"
+                            min="0"
+                            className="w-full text-right font-black text-sm sm:text-base text-slate-900 bg-slate-50/60 border-2 border-slate-300 hover:border-slate-400 focus:border-indigo-600 focus:bg-white rounded-lg px-3 py-2 transition-all font-mono focus:outline-none shadow-xs"
+                            value={item.unitPrice || ""}
+                            onChange={(e) => updateCell(idx, "unitPrice", Number(e.target.value) || 0)}
+                            onKeyDown={(e) => handleCellKeyDown(e, idx, "price")}
+                            placeholder="0.00"
+                          />
+                        </td>
+
+                        {/* Discount Cell */}
+                        <td className="py-2 px-2 border-r border-slate-300 text-right">
+                          <input
+                            id={`row-discount-${idx}`}
+                            type="number"
+                            step="0.01"
+                            min="0"
+                            className="w-full text-right font-bold text-xs sm:text-sm text-slate-800 bg-slate-50/60 border-2 border-slate-300 hover:border-slate-400 focus:border-indigo-600 focus:bg-white rounded-lg px-2 py-2 font-mono focus:outline-none shadow-xs"
+                            value={item.discountAmount || ""}
+                            onChange={(e) => updateCell(idx, "discountAmount", Number(e.target.value) || 0)}
+                            onKeyDown={(e) => handleCellKeyDown(e, idx, "discount")}
+                            placeholder="0"
+                          />
+                        </td>
+
+                        {/* GST % Cell (if GST enabled) */}
+                        {organization.gstEnabled && (
+                          <td className="py-2 px-2 border-r border-slate-300 text-center">
+                            <input
+                              id={`row-tax-${idx}`}
+                              type="number"
+                              step="0.5"
+                              min="0"
+                              max="100"
+                              className="w-full text-center font-bold text-xs sm:text-sm text-slate-800 bg-slate-50/60 border-2 border-slate-300 hover:border-slate-400 focus:border-indigo-600 focus:bg-white rounded-lg px-1.5 py-2 font-mono focus:outline-none shadow-xs"
+                              value={item.taxRate}
+                              onChange={(e) => updateCell(idx, "taxRate", Number(e.target.value) || 0)}
+                              onKeyDown={(e) => handleCellKeyDown(e, idx, "tax")}
+                            />
+                          </td>
+                        )}
+
+                        {/* Live Total Amount Cell */}
+                        <td className="py-2.5 px-3 text-right font-black text-sm sm:text-base text-indigo-700 font-mono border-r border-slate-300 bg-indigo-50/70">
+                          {formatCurrency(lineTotal, organization.currency)}
+                        </td>
+
+                        {/* Delete Row Button */}
+                        <td className="py-2.5 px-2 text-center">
+                          <button
+                            type="button"
+                            onClick={() => removeRow(idx)}
+                            className="text-slate-400 hover:text-rose-600 hover:bg-rose-100 rounded-lg p-2 transition-all"
+                            title="Delete Row"
+                          >
+                            <Trash2 className="w-5 h-5" />
+                          </button>
+                        </td>
+                      </tr>
+                    );
+                  })}
+                </tbody>
+              </table>
+
+              {/* Add Excel Row Controls */}
+              <div className="p-4 bg-slate-100 border-t-2 border-slate-300 flex flex-wrap items-center justify-between gap-3">
+                <Button
+                  type="button"
+                  size="md"
+                  onClick={addBlankRowAndFocus}
+                  className="bg-indigo-50 border-2 border-indigo-600 text-indigo-700 font-extrabold hover:bg-indigo-600 hover:text-white text-sm py-2.5 px-4 rounded-xl shadow-xs transition-all flex items-center gap-2"
+                >
+                  <Plus className="w-4 h-4 stroke-[3]" />
+                  + Add Excel Row (or Press Enter on last row)
+                </Button>
+
+                <div className="flex items-center gap-2">
+                  <span className="text-xs font-bold text-slate-700 uppercase tracking-wide">
+                    Quick Catalog Add:
+                  </span>
+                  <div className="flex flex-wrap gap-1.5 max-w-md">
+                    {itemsList.slice(0, 5).map((catItem) => (
+                      <button
+                        key={catItem.id}
+                        type="button"
+                        onClick={() => addItemFromCatalog(catItem)}
+                        className="text-xs px-2.5 py-1 bg-white border border-slate-300 hover:border-indigo-600 hover:text-indigo-700 hover:bg-indigo-50 rounded-lg font-bold text-slate-800 transition-all shadow-xs"
+                      >
+                        + {catItem.name}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+        </div>
+
+        {/* Right Column: Checkout Counter Summary (4 cols) */}
+        <div className="lg:col-span-4 space-y-4">
+          <Card className="border-slate-300 shadow-xl bg-white sticky top-4">
+            <CardContent className="p-5 space-y-4">
+              <div className="flex items-center justify-between border-b border-slate-100 pb-3">
+                <h3 className="text-base font-bold text-slate-900">
+                  Bill Summary
+                </h3>
+                <kbd className="px-2 py-0.5 bg-slate-100 text-slate-600 text-[10px] font-mono rounded border">
+                  Ctrl+Enter (F2)
+                </kbd>
+              </div>
+
+              {error && (
+                <div className="p-3 bg-rose-50 border border-rose-200 text-rose-700 text-xs rounded-xl flex items-start gap-2">
+                  <AlertCircle className="w-4 h-4 shrink-0 mt-0.5" />
+                  <span>{error}</span>
+                </div>
+              )}
+
+              {/* Overall Bill Discount */}
+              <div className="space-y-1.5">
+                <div className="flex items-center justify-between">
+                  <label className="text-xs font-semibold text-slate-700">Bill Level Discount</label>
+                  <div className="flex rounded-md shadow-sm border border-slate-200 overflow-hidden text-[11px]">
+                    <button
+                      type="button"
+                      onClick={() => setDiscountType("FIXED")}
+                      className={`px-2.5 py-1 font-medium ${discountType === "FIXED" ? "bg-indigo-600 text-white" : "bg-white text-slate-600"}`}
+                    >
+                      ₹ Fixed
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => setDiscountType("PERCENTAGE")}
+                      className={`px-2.5 py-1 font-medium ${discountType === "PERCENTAGE" ? "bg-indigo-600 text-white" : "bg-white text-slate-600"}`}
+                    >
+                      % Percent
+                    </button>
+                  </div>
+                </div>
+                <Input
+                  type="number"
+                  min="0"
+                  step="0.01"
+                  value={discountValue}
+                  onChange={(e) => setDiscountValue(e.target.value)}
+                  placeholder="0"
+                />
+              </div>
+
+              {/* Payment Method Selector */}
+              <div className="space-y-1.5 pt-1">
+                <label className="text-xs font-semibold text-slate-700 block">Payment Method</label>
+                <div className="grid grid-cols-2 gap-2">
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setIsCredit(false);
+                      setPaymentMethod("CASH");
+                    }}
+                    className={`p-2.5 rounded-xl border text-xs font-bold flex items-center justify-center gap-1.5 transition-all ${
+                      !isCredit && paymentMethod === "CASH"
+                        ? "bg-indigo-600 text-white border-indigo-600 shadow"
+                        : "bg-white text-slate-700 border-slate-200 hover:bg-slate-50"
+                    }`}
+                  >
+                    <Banknote className="w-4 h-4" />
+                    Cash
+                  </button>
+
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setIsCredit(false);
+                      setPaymentMethod("UPI");
+                    }}
+                    className={`p-2.5 rounded-xl border text-xs font-bold flex items-center justify-center gap-1.5 transition-all ${
+                      !isCredit && paymentMethod === "UPI"
+                        ? "bg-indigo-600 text-white border-indigo-600 shadow"
+                        : "bg-white text-slate-700 border-slate-200 hover:bg-slate-50"
+                    }`}
+                  >
+                    <QrCode className="w-4 h-4" />
+                    UPI / QR
+                  </button>
+
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setIsCredit(false);
+                      setPaymentMethod("CARD");
+                    }}
+                    className={`p-2.5 rounded-xl border text-xs font-bold flex items-center justify-center gap-1.5 transition-all ${
+                      !isCredit && paymentMethod === "CARD"
+                        ? "bg-indigo-600 text-white border-indigo-600 shadow"
+                        : "bg-white text-slate-700 border-slate-200 hover:bg-slate-50"
+                    }`}
+                  >
+                    <CreditCard className="w-4 h-4" />
+                    Card
+                  </button>
+
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setIsCredit(true);
+                      setPaymentMethod("CREDIT");
+                    }}
+                    className={`p-2.5 rounded-xl border text-xs font-bold flex items-center justify-center gap-1.5 transition-all ${
+                      isCredit
+                        ? "bg-amber-600 text-white border-amber-600 shadow"
+                        : "bg-white text-slate-700 border-slate-200 hover:bg-slate-50"
+                    }`}
+                  >
+                    <FileText className="w-4 h-4" />
+                    Credit / Unpaid
+                  </button>
+                </div>
+              </div>
+
+              {/* CASH CALCULATOR */}
+              {!isCredit && paymentMethod === "CASH" && (
+                <div className="p-3 bg-emerald-50 border border-emerald-200 rounded-xl space-y-2">
+                  <label className="text-xs font-bold text-emerald-900 block">
+                    Cash Received Calculator
+                  </label>
+                  <div className="grid grid-cols-2 gap-2">
+                    <div>
+                      <span className="text-[10px] text-emerald-700 font-medium block mb-0.5">Cash Received</span>
+                      <Input
+                        type="number"
+                        step="1"
+                        placeholder={String(calculation.grandTotal)}
+                        value={cashReceived}
+                        onChange={(e) => setCashReceived(e.target.value)}
+                      />
+                    </div>
+                    <div className="flex flex-col justify-center bg-white p-2 rounded-lg border border-emerald-200 text-right">
+                      <span className="text-[10px] text-emerald-700 font-medium">Change Return</span>
+                      <span className="text-sm font-black text-emerald-600 font-mono">
+                        {formatCurrency(cashChange, organization.currency)}
+                      </span>
+                    </div>
+                  </div>
+                </div>
+              )}
+
+              {/* Summary Calculation Box */}
+              <div className="p-4 bg-slate-50 rounded-xl space-y-2 text-xs border border-slate-200/80">
+                <div className="flex justify-between text-slate-600">
+                  <span>Subtotal</span>
+                  <span className="font-mono">{formatCurrency(calculation.subtotal, organization.currency)}</span>
+                </div>
+
+                {calculation.discountAmount > 0 && (
+                  <div className="flex justify-between text-emerald-600 font-medium">
+                    <span>Discount</span>
+                    <span className="font-mono">-{formatCurrency(calculation.discountAmount, organization.currency)}</span>
+                  </div>
+                )}
+
+                {calculation.isGst && (
+                  <>
+                    <div className="flex justify-between text-slate-600">
+                      <span>Taxable Amount</span>
+                      <span className="font-mono">{formatCurrency(calculation.taxableAmount, organization.currency)}</span>
+                    </div>
+                    {calculation.isInterState ? (
+                      <div className="flex justify-between text-slate-600">
+                        <span>IGST</span>
+                        <span className="font-mono">{formatCurrency(calculation.igstAmount, organization.currency)}</span>
+                      </div>
+                    ) : (
+                      <>
+                        <div className="flex justify-between text-slate-600">
+                          <span>CGST</span>
+                          <span className="font-mono">{formatCurrency(calculation.cgstAmount, organization.currency)}</span>
+                        </div>
+                        <div className="flex justify-between text-slate-600">
+                          <span>SGST</span>
+                          <span className="font-mono">{formatCurrency(calculation.sgstAmount, organization.currency)}</span>
+                        </div>
+                      </>
+                    )}
+                  </>
+                )}
+
+                <div className="flex justify-between text-lg font-black text-slate-900 pt-2 border-t border-slate-200">
+                  <span>Grand Total</span>
+                  <span className="text-indigo-600 font-mono">
+                    {formatCurrency(calculation.grandTotal, organization.currency)}
+                  </span>
+                </div>
+
+                {actualBalance > 0 && (
+                  <div className="flex justify-between text-xs font-bold text-amber-700 pt-1">
+                    <span>Balance Outstanding</span>
+                    <span className="font-mono">{formatCurrency(actualBalance, organization.currency)}</span>
                   </div>
                 )}
               </div>
-            )}
-          </CardContent>
-        </Card>
 
-        {/* Selected Line Items Table */}
-        <Card>
-          <CardContent className="p-4 sm:p-5">
-            <div className="flex items-center justify-between mb-4">
-              <h3 className="text-sm font-bold text-slate-900">
-                Bill Items ({selectedItems.length})
-              </h3>
-              <Button type="button" variant="outline" size="sm" onClick={addCustomItem} icon={<Plus className="w-3.5 h-3.5" />}>
-                + Custom Item
+              {/* 1-Click Complete Sale Button */}
+              <Button
+                size="lg"
+                className="w-full text-base font-bold shadow-lg shadow-indigo-600/30 py-3.5"
+                loading={submitting}
+                onClick={handleGenerateBill}
+                icon={<CheckCircle2 className="w-5 h-5" />}
+              >
+                Complete Sale (F2)
               </Button>
-            </div>
-
-            {selectedItems.length === 0 ? (
-              <div className="text-center py-10 px-4 border border-dashed border-slate-200 rounded-xl bg-slate-50/50">
-                <p className="text-sm font-medium text-slate-700">No items added yet</p>
-                <p className="text-xs text-slate-400 mt-0.5">
-                  Select an item from the catalog below or add a custom item
-                </p>
-              </div>
-            ) : (
-              <div className="overflow-x-auto">
-                <table className="w-full text-xs border-collapse">
-                  <thead>
-                    <tr className="border-b border-slate-200 text-slate-500 font-semibold text-left">
-                      <th className="py-2 pr-2">Item</th>
-                      <th className="py-2 px-2 w-20 text-center">Qty</th>
-                      <th className="py-2 px-2 w-28 text-right">Price</th>
-                      {organization.gstEnabled && (
-                        <th className="py-2 px-2 w-20 text-right">Tax %</th>
-                      )}
-                      <th className="py-2 pl-2 text-right">Total</th>
-                      <th className="py-2 pl-2 w-8"></th>
-                    </tr>
-                  </thead>
-                  <tbody className="divide-y divide-slate-100">
-                    {selectedItems.map((item, idx) => {
-                      const lineTaxable = Math.max(0, item.quantity * item.unitPrice - item.discountAmount);
-                      const lineTax = organization.gstEnabled
-                        ? (lineTaxable * item.taxRate) / 100
-                        : 0;
-                      const lineTotal = lineTaxable + lineTax;
-
-                      return (
-                        <tr key={idx} className="group">
-                          <td className="py-2.5 pr-2">
-                            <input
-                              type="text"
-                              className="font-semibold text-slate-900 bg-transparent border-0 p-0 focus:ring-0 w-full"
-                              value={item.name}
-                              onChange={(e) => updateItem(idx, "name", e.target.value)}
-                            />
-                            <div className="flex items-center gap-1.5 mt-0.5">
-                              <span className="text-[10px] text-slate-400 uppercase font-mono">
-                                {item.itemType}
-                              </span>
-                              {item.availableStock !== null && item.availableStock !== undefined && (
-                                <span className={`text-[10px] ${item.availableStock < 5 ? "text-rose-500 font-bold" : "text-slate-400"}`}>
-                                  • Stock: {item.availableStock}
-                                </span>
-                              )}
-                            </div>
-                          </td>
-
-                          <td className="py-2.5 px-2">
-                            <div className="flex items-center justify-center border border-slate-300 rounded-lg overflow-hidden bg-white">
-                              <button
-                                type="button"
-                                onClick={() =>
-                                  updateItem(idx, "quantity", Math.max(1, item.quantity - 1))
-                                }
-                                className="px-2 py-1 text-slate-500 hover:bg-slate-100"
-                              >
-                                -
-                              </button>
-                              <input
-                                type="number"
-                                min="1"
-                                className="w-10 text-center font-bold text-xs p-1 border-0 focus:ring-0"
-                                value={item.quantity}
-                                onChange={(e) =>
-                                  updateItem(idx, "quantity", Math.max(1, Number(e.target.value) || 1))
-                                }
-                              />
-                              <button
-                                type="button"
-                                onClick={() => updateItem(idx, "quantity", item.quantity + 1)}
-                                className="px-2 py-1 text-slate-500 hover:bg-slate-100"
-                              >
-                                +
-                              </button>
-                            </div>
-                          </td>
-
-                          <td className="py-2.5 px-2 text-right">
-                            <input
-                              type="number"
-                              step="0.01"
-                              className="w-24 text-right rounded border border-slate-200 py-1 px-1.5 text-xs font-semibold"
-                              value={item.unitPrice}
-                              onChange={(e) =>
-                                updateItem(idx, "unitPrice", Number(e.target.value) || 0)
-                              }
-                            />
-                          </td>
-
-                          {organization.gstEnabled && (
-                            <td className="py-2.5 px-2 text-right">
-                              <input
-                                type="number"
-                                step="0.5"
-                                className="w-16 text-right rounded border border-slate-200 py-1 px-1.5 text-xs"
-                                value={item.taxRate}
-                                onChange={(e) =>
-                                  updateItem(idx, "taxRate", Number(e.target.value) || 0)
-                                }
-                              />
-                            </td>
-                          )}
-
-                          <td className="py-2.5 pl-2 text-right font-bold text-slate-900">
-                            {formatCurrency(lineTotal, organization.currency)}
-                          </td>
-
-                          <td className="py-2.5 pl-2 text-right">
-                            <button
-                              type="button"
-                              onClick={() => removeItem(idx)}
-                              className="text-slate-300 hover:text-rose-500 transition-colors p-1"
-                            >
-                              <Trash2 className="w-4 h-4" />
-                            </button>
-                          </td>
-                        </tr>
-                      );
-                    })}
-                  </tbody>
-                </table>
-              </div>
-            )}
-          </CardContent>
-        </Card>
-
-        {/* Quick Item Picker Catalog */}
-        <Card>
-          <CardContent className="p-4 sm:p-5">
-            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 mb-4">
-              <h4 className="text-xs font-bold text-slate-700 uppercase tracking-wider">
-                Select from Catalog
-              </h4>
-              <div className="w-full sm:w-64">
-                <Input
-                  placeholder="Search item or SKU..."
-                  value={itemSearchQuery}
-                  onChange={(e) => setItemSearchQuery(e.target.value)}
-                  leftIcon={<Search className="w-3.5 h-3.5" />}
-                />
-              </div>
-            </div>
-
-            {filteredCatalogItems.length === 0 ? (
-              <p className="text-xs text-slate-400 py-4 text-center">
-                No items found. Create items in Products & Services module.
-              </p>
-            ) : (
-              <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-2.5">
-                {filteredCatalogItems.map((catItem) => (
-                  <button
-                    key={catItem.id}
-                    type="button"
-                    onClick={() => addItemToBill(catItem)}
-                    className="flex flex-col p-3 rounded-xl border border-slate-200 bg-white hover:border-indigo-500 hover:shadow-sm text-left transition-all active:scale-[0.98]"
-                  >
-                    <div className="flex items-center justify-between w-full mb-1">
-                      <span className="text-[10px] font-bold text-slate-400">
-                        {catItem.type === "SERVICE" ? (
-                          <Scissors className="w-3 h-3 text-purple-500" />
-                        ) : (
-                          <Package className="w-3 h-3 text-indigo-500" />
-                        )}
-                      </span>
-                      {catItem.type === "PRODUCT" && (
-                        <span className={`text-[10px] ${Number(catItem.stock) <= Number(catItem.minimumStock) ? "text-rose-500 font-bold" : "text-slate-400"}`}>
-                          Qty: {catItem.stock ?? 0}
-                        </span>
-                      )}
-                    </div>
-                    <p className="text-xs font-semibold text-slate-900 truncate w-full">
-                      {catItem.name}
-                    </p>
-                    <p className="text-xs font-bold text-indigo-600 mt-1 font-mono">
-                      {formatCurrency(catItem.sellingPrice, organization.currency)}
-                    </p>
-                  </button>
-                ))}
-              </div>
-            )}
-          </CardContent>
-        </Card>
-      </div>
-
-      {/* Right Column: Checkout Summary & Payment (4 cols on lg) */}
-      <div className="lg:col-span-4 space-y-6">
-        <Card className="sticky top-20 border-slate-300 shadow-md">
-          <CardContent className="p-5 space-y-4">
-            <h3 className="text-base font-bold text-slate-900 border-b border-slate-100 pb-3">
-              Payment & Checkout
-            </h3>
-
-            {error && (
-              <div className="p-3 bg-rose-50 border border-rose-200 text-rose-700 text-xs rounded-lg flex items-start gap-2">
-                <AlertCircle className="w-4 h-4 shrink-0 mt-0.5" />
-                <span>{error}</span>
-              </div>
-            )}
-
-            {/* Discount Option */}
-            <div className="space-y-1.5">
-              <div className="flex items-center justify-between">
-                <label className="text-xs font-semibold text-slate-700">Discount</label>
-                <div className="flex rounded-md shadow-sm border border-slate-200 overflow-hidden text-[11px]">
-                  <button
-                    type="button"
-                    onClick={() => setDiscountType("FIXED")}
-                    className={`px-2 py-0.5 font-medium ${discountType === "FIXED" ? "bg-indigo-600 text-white" : "bg-white text-slate-600"}`}
-                  >
-                    ₹ Fixed
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => setDiscountType("PERCENTAGE")}
-                    className={`px-2 py-0.5 font-medium ${discountType === "PERCENTAGE" ? "bg-indigo-600 text-white" : "bg-white text-slate-600"}`}
-                  >
-                    % Percent
-                  </button>
-                </div>
-              </div>
-              <Input
-                type="number"
-                min="0"
-                step="0.01"
-                value={discountValue}
-                onChange={(e) => setDiscountValue(e.target.value)}
-                placeholder="0"
-              />
-            </div>
-
-            {/* Payment Method Selector */}
-            <div className="space-y-1.5 pt-2">
-              <label className="text-xs font-semibold text-slate-700 block">Payment Method</label>
-              <div className="grid grid-cols-2 gap-2">
-                <button
-                  type="button"
-                  onClick={() => {
-                    setIsCredit(false);
-                    setPaymentMethod("CASH");
-                  }}
-                  className={`p-2.5 rounded-lg border text-xs font-semibold flex items-center justify-center gap-1.5 transition-colors ${
-                    !isCredit && paymentMethod === "CASH"
-                      ? "bg-indigo-600 text-white border-indigo-600 shadow-sm"
-                      : "bg-white text-slate-700 border-slate-200 hover:bg-slate-50"
-                  }`}
-                >
-                  <Banknote className="w-3.5 h-3.5" />
-                  Cash
-                </button>
-
-                <button
-                  type="button"
-                  onClick={() => {
-                    setIsCredit(false);
-                    setPaymentMethod("UPI");
-                  }}
-                  className={`p-2.5 rounded-lg border text-xs font-semibold flex items-center justify-center gap-1.5 transition-colors ${
-                    !isCredit && paymentMethod === "UPI"
-                      ? "bg-indigo-600 text-white border-indigo-600 shadow-sm"
-                      : "bg-white text-slate-700 border-slate-200 hover:bg-slate-50"
-                  }`}
-                >
-                  <QrCode className="w-3.5 h-3.5" />
-                  UPI / QR
-                </button>
-
-                <button
-                  type="button"
-                  onClick={() => {
-                    setIsCredit(false);
-                    setPaymentMethod("CARD");
-                  }}
-                  className={`p-2.5 rounded-lg border text-xs font-semibold flex items-center justify-center gap-1.5 transition-colors ${
-                    !isCredit && paymentMethod === "CARD"
-                      ? "bg-indigo-600 text-white border-indigo-600 shadow-sm"
-                      : "bg-white text-slate-700 border-slate-200 hover:bg-slate-50"
-                  }`}
-                >
-                  <CreditCard className="w-3.5 h-3.5" />
-                  Card
-                </button>
-
-                <button
-                  type="button"
-                  onClick={() => {
-                    setIsCredit(true);
-                    setPaymentMethod("CREDIT");
-                  }}
-                  className={`p-2.5 rounded-lg border text-xs font-semibold flex items-center justify-center gap-1.5 transition-colors ${
-                    isCredit
-                      ? "bg-amber-600 text-white border-amber-600 shadow-sm"
-                      : "bg-white text-slate-700 border-slate-200 hover:bg-slate-50"
-                  }`}
-                >
-                  <FileText className="w-3.5 h-3.5" />
-                  Credit / Unpaid
-                </button>
-              </div>
-            </div>
-
-            {/* If partial payment */}
-            {!isCredit && (
-              <div className="pt-1">
-                <Input
-                  label="Paid Amount (Optional partial)"
-                  type="number"
-                  step="0.01"
-                  min="0"
-                  placeholder={String(calculation.grandTotal)}
-                  value={customPaidAmount}
-                  onChange={(e) => setCustomPaidAmount(e.target.value)}
-                  helperText="Leave blank for full payment"
-                />
-              </div>
-            )}
-
-            {/* Bill Calculation Summary */}
-            <div className="p-4 bg-slate-50 rounded-xl space-y-2 text-xs border border-slate-200/80">
-              <div className="flex justify-between text-slate-600">
-                <span>Subtotal</span>
-                <span>{formatCurrency(calculation.subtotal, organization.currency)}</span>
-              </div>
-
-              {calculation.discountAmount > 0 && (
-                <div className="flex justify-between text-emerald-600 font-medium">
-                  <span>Discount</span>
-                  <span>-{formatCurrency(calculation.discountAmount, organization.currency)}</span>
-                </div>
-              )}
-
-              {calculation.isGst && (
-                <>
-                  <div className="flex justify-between text-slate-600">
-                    <span>Taxable Amount</span>
-                    <span>{formatCurrency(calculation.taxableAmount, organization.currency)}</span>
-                  </div>
-                  {calculation.isInterState ? (
-                    <div className="flex justify-between text-slate-600">
-                      <span>IGST</span>
-                      <span>{formatCurrency(calculation.igstAmount, organization.currency)}</span>
-                    </div>
-                  ) : (
-                    <>
-                      <div className="flex justify-between text-slate-600">
-                        <span>CGST</span>
-                        <span>{formatCurrency(calculation.cgstAmount, organization.currency)}</span>
-                      </div>
-                      <div className="flex justify-between text-slate-600">
-                        <span>SGST</span>
-                        <span>{formatCurrency(calculation.sgstAmount, organization.currency)}</span>
-                      </div>
-                    </>
-                  )}
-                </>
-              )}
-
-              <div className="flex justify-between text-base font-black text-slate-900 pt-2 border-t border-slate-200">
-                <span>Total Amount</span>
-                <span className="text-indigo-600 font-mono">
-                  {formatCurrency(calculation.grandTotal, organization.currency)}
-                </span>
-              </div>
-
-              <div className="flex justify-between text-xs text-emerald-600 font-semibold pt-1">
-                <span>Paying Now</span>
-                <span>{formatCurrency(actualPaidAmount, organization.currency)}</span>
-              </div>
-
-              {actualBalance > 0 && (
-                <div className="flex justify-between text-xs font-bold text-amber-700 pt-1">
-                  <span>Balance Due</span>
-                  <span>{formatCurrency(actualBalance, organization.currency)}</span>
-                </div>
-              )}
-            </div>
-
-            {/* Big Checkout Button */}
-            <Button
-              size="lg"
-              className="w-full text-base font-bold shadow-lg shadow-indigo-600/30 py-3"
-              loading={submitting}
-              onClick={handleGenerateBill}
-              icon={<CheckCircle2 className="w-5 h-5" />}
-            >
-              Generate Bill
-            </Button>
-          </CardContent>
-        </Card>
+            </CardContent>
+          </Card>
+        </div>
       </div>
 
       {/* Quick Add Customer Modal */}
@@ -798,15 +1084,20 @@ export function QuickBill({ organization }: QuickBillProps) {
               label="GSTIN (Optional)"
               value={newCustGstin}
               onChange={(e) => setNewCustGstin(e.target.value)}
-              placeholder="15-character GSTIN"
+              placeholder="e.g. 27ABCDE1234F1Z5"
             />
           )}
-          <div className="flex justify-end gap-2 pt-2 border-t border-slate-100">
-            <Button type="button" variant="outline" onClick={() => setIsAddCustomerOpen(false)}>
+
+          <div className="flex justify-end gap-3 pt-3">
+            <Button
+              type="button"
+              variant="outline"
+              onClick={() => setIsAddCustomerOpen(false)}
+            >
               Cancel
             </Button>
             <Button type="submit" loading={creatingCustomer}>
-              Save & Select
+              Save Customer
             </Button>
           </div>
         </form>

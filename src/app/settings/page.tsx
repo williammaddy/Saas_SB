@@ -353,6 +353,28 @@ export default function SettingsPage() {
           </CardContent>
         </Card>
 
+        {/* Section 4: Invoice Branding & Template Customization */}
+        <Card className="border-indigo-200 bg-indigo-50/40">
+          <CardContent className="p-5 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
+            <div>
+              <h4 className="font-bold text-sm text-slate-900 flex items-center gap-2">
+                <Receipt className="w-4 h-4 text-indigo-600" />
+                Invoice Design & Branding Customization
+              </h4>
+              <p className="text-xs text-slate-600 mt-1">
+                Choose from 4 professional templates (Classic, Modern, Minimal, Compact), pick your brand accent color, and see a live side-by-side preview!
+              </p>
+            </div>
+
+            <a
+              href="/settings/invoice-customization"
+              className="px-4 py-2 bg-indigo-600 hover:bg-indigo-700 text-white font-bold text-xs rounded-xl shadow-sm transition-colors shrink-0"
+            >
+              Customize Invoice Design →
+            </a>
+          </CardContent>
+        </Card>
+
         {/* Save Changes Button */}
         <div className="flex justify-end pt-2">
           <Button type="submit" size="lg" loading={saving} icon={<Check className="w-4 h-4" />}>

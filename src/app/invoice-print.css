@@ -1,0 +1,113 @@
+/* Specialized Zero-Margin Invoice Print & Thermal Receipt Stylesheet */
+
+@media print {
+  /* Default A4 Print Page setup with ZERO margin to prevent browser headers/footers (URL, date, title) */
+  @page {
+    size: A4 portrait;
+    margin: 0 !important;
+  }
+
+  /* Thermal 80mm receipt page setup with zero margin */
+  @page receipt-80mm-page {
+    size: 80mm auto;
+    margin: 0 !important;
+  }
+
+  /* Thermal 58mm receipt page setup with zero margin */
+  @page receipt-58mm-page {
+    size: 58mm auto;
+    margin: 0 !important;
+  }
+
+  html, body {
+    background: #ffffff !important;
+    color: #000000 !important;
+    font-size: 10pt !important;
+    margin: 0 !important;
+    padding: 0 !important;
+    -webkit-print-color-adjust: exact !important;
+    print-color-adjust: exact !important;
+  }
+
+  /* Hide all app layouts, headers, sidebars, navs, buttons, toasts, modals */
+  .no-print, header, nav, aside, button, .action-bar, [role="dialog"], [role="alert"] {
+    display: none !important;
+  }
+
+  .invoice-root {
+    display: block !important;
+    width: 100% !important;
+    max-width: 100% !important;
+    padding: 12mm !important;
+    box-sizing: border-box !important;
+    margin: 0 !important;
+    box-shadow: none !important;
+    border: none !important;
+    background: #ffffff !important;
+  }
+
+  /* Multi-page pagination rules */
+  table {
+    page-break-after: auto;
+    width: 100% !important;
+    border-collapse: collapse !important;
+  }
+
+  tr {
+    page-break-inside: avoid !important;
+    break-inside: avoid !important;
+  }
+
+  thead {
+    display: table-header-group !important; /* Repeats table header on every page */
+  }
+
+  tfoot {
+    display: table-footer-group !important;
+  }
+
+  .avoid-break, .totals, .gst-summary, .footer-signatory {
+    page-break-inside: avoid !important;
+    break-inside: avoid !important;
+  }
+}
+
+/* 80mm POS Thermal Receipt Styling */
+.receipt-80mm {
+  max-width: 78mm !important;
+  margin: 0 auto !important;
+  padding: 3mm !important;
+  box-sizing: border-box !important;
+  font-family: monospace, Courier, sans-serif !important;
+  font-size: 9pt !important;
+  color: #000000 !important;
+  background: #ffffff !important;
+  line-height: 1.3 !important;
+}
+
+/* 58mm POS Thermal Receipt Styling */
+.receipt-58mm {
+  max-width: 56mm !important;
+  margin: 0 auto !important;
+  padding: 2mm !important;
+  box-sizing: border-box !important;
+  font-family: monospace, Courier, sans-serif !important;
+  font-size: 8pt !important;
+  color: #000000 !important;
+  background: #ffffff !important;
+  line-height: 1.2 !important;
+}
+
+.receipt-80mm table, .receipt-58mm table {
+  width: 100% !important;
+  font-size: 8pt !important;
+}
+
+.receipt-80mm th, .receipt-80mm td, .receipt-58mm th, .receipt-58mm td {
+  padding: 2px 1px !important;
+}
+
+.receipt-dashed-line {
+  border-bottom: 1px dashed #000000 !important;
+  margin: 4px 0 !important;
+}

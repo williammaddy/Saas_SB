@@ -55,6 +55,7 @@ export async function PUT(
         name: data.name,
         type: data.type,
         sku: data.sku || null,
+        barcode: data.barcode || null,
         category: data.category || null,
         description: data.description || null,
         sellingPrice: data.sellingPrice,
@@ -64,6 +65,7 @@ export async function PUT(
         durationMinutes: data.type === "SERVICE" ? data.durationMinutes || null : null,
         stock: data.type === "PRODUCT" ? data.stock ?? 0 : null,
         minimumStock: data.type === "PRODUCT" ? data.minimumStock ?? 0 : null,
+        isActive: data.isActive ?? true,
       },
     });
 

@@ -51,6 +51,22 @@ export const organizationSettingsSchema = onboardingSchema.extend({
   invoicePrefix: z.string().default("INV-"),
   nextInvoiceNumber: z.coerce.number().int().min(1).default(1),
   defaultPaymentTerms: z.string().default("Due on Receipt"),
+  invoiceTemplate: z.enum(["CLASSIC", "MODERN", "MINIMAL", "COMPACT"]).default("CLASSIC"),
+  brandColor: z.string().default("#4f46e5"),
+  showAddress: z.boolean().default(true),
+  showContact: z.boolean().default(true),
+  showGstin: z.boolean().default(true),
+  footerMessage: z.string().optional(),
+});
+
+export const invoiceCustomizationSchema = z.object({
+  invoiceTemplate: z.enum(["CLASSIC", "MODERN", "MINIMAL", "COMPACT"]).default("CLASSIC"),
+  brandColor: z.string().default("#4f46e5"),
+  showAddress: z.boolean().default(true),
+  showContact: z.boolean().default(true),
+  showGstin: z.boolean().default(true),
+  footerMessage: z.string().optional(),
+  logoUrl: z.string().optional(),
 });
 
 export const customerSchema = z.object({
@@ -70,6 +86,7 @@ export const itemSchema = z.object({
   name: z.string().min(1, "Item name is required"),
   type: z.enum(["PRODUCT", "SERVICE"]).default("PRODUCT"),
   sku: z.string().optional(),
+  barcode: z.string().optional(),
   category: z.string().optional(),
   description: z.string().optional(),
   sellingPrice: z.coerce.number().min(0, "Selling price must be >= 0"),
@@ -79,6 +96,14 @@ export const itemSchema = z.object({
   durationMinutes: z.coerce.number().int().min(1).optional(),
   stock: z.coerce.number().optional(),
   minimumStock: z.coerce.number().optional(),
+  isActive: z.boolean().default(true),
+});
+
+export const stockAdjustmentSchema = z.object({
+  itemId: z.string().min(1, "Item ID is required"),
+  quantityDelta: z.coerce.number().refine((val) => val !== 0, "Adjustment amount cannot be zero"),
+  reason: z.enum(["NEW_SHIPMENT", "DAMAGED", "AUDIT_CORRECTION", "EXPIRED", "OTHER"]),
+  notes: z.string().optional(),
 });
 
 export const invoiceItemInputSchema = z.object({

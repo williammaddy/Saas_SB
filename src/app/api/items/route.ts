@@ -11,12 +11,21 @@ export async function GET(req: Request) {
     const { searchParams } = new URL(req.url);
     const query = searchParams.get("q")?.trim();
     const type = searchParams.get("type")?.toUpperCase();
+    const status = searchParams.get("status")?.toUpperCase();
+    const stockStatus = searchParams.get("stockStatus")?.toUpperCase();
     const lowStockOnly = searchParams.get("lowStock") === "true";
 
     const whereClause: Record<string, unknown> = {
       organizationId: organization.id,
-      isActive: true,
     };
+
+    if (status === "ACTIVE") {
+      whereClause.isActive = true;
+    } else if (status === "INACTIVE") {
+      whereClause.isActive = false;
+    } else if (status !== "ALL") {
+      whereClause.isActive = true;
+    }
 
     if (type === "PRODUCT" || type === "SERVICE") {
       whereClause.type = type;
@@ -26,6 +35,7 @@ export async function GET(req: Request) {
       whereClause.OR = [
         { name: { contains: query, mode: "insensitive" } },
         { sku: { contains: query, mode: "insensitive" } },
+        { barcode: { contains: query, mode: "insensitive" } },
         { category: { contains: query, mode: "insensitive" } },
       ];
     }
@@ -35,10 +45,28 @@ export async function GET(req: Request) {
       orderBy: [{ type: "asc" }, { name: "asc" }],
     });
 
-    // If low stock requested, filter items where stock <= minimumStock
     let resultItems = items;
-    if (lowStockOnly) {
-      resultItems = items.filter(
+
+    // Filter by stockStatus if specified
+    if (stockStatus && stockStatus !== "ALL") {
+      resultItems = resultItems.filter((it) => {
+        if (it.type !== "PRODUCT" || it.stock === null) return false;
+        const stockNum = Number(it.stock);
+        const minStockNum = Number(it.minimumStock ?? 0);
+
+        if (stockStatus === "OUT_OF_STOCK") {
+          return stockNum <= 0;
+        }
+        if (stockStatus === "LOW_STOCK") {
+          return stockNum > 0 && stockNum <= minStockNum;
+        }
+        if (stockStatus === "IN_STOCK") {
+          return stockNum > minStockNum;
+        }
+        return true;
+      });
+    } else if (lowStockOnly) {
+      resultItems = resultItems.filter(
         (it) =>
           it.type === "PRODUCT" &&
           it.stock !== null &&
@@ -74,6 +102,7 @@ export async function POST(req: Request) {
         name: data.name,
         type: data.type,
         sku: data.sku || null,
+        barcode: data.barcode || null,
         category: data.category || null,
         description: data.description || null,
         sellingPrice: data.sellingPrice,
@@ -83,6 +112,7 @@ export async function POST(req: Request) {
         durationMinutes: data.type === "SERVICE" ? data.durationMinutes || null : null,
         stock: data.type === "PRODUCT" ? data.stock ?? 0 : null,
         minimumStock: data.type === "PRODUCT" ? data.minimumStock ?? 0 : null,
+        isActive: data.isActive ?? true,
       },
     });
 

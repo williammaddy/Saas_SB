@@ -57,6 +57,13 @@ export async function PUT(req: Request) {
         invoicePrefix: data.invoicePrefix,
         nextInvoiceNumber: data.nextInvoiceNumber,
         defaultPaymentTerms: data.defaultPaymentTerms,
+        invoiceTemplate: data.invoiceTemplate,
+        brandColor: data.brandColor,
+        showAddress: data.showAddress,
+        showContact: data.showContact,
+        showGstin: data.showGstin,
+        footerMessage: data.footerMessage || null,
+        logoUrl: body.logoUrl !== undefined ? body.logoUrl : organization.logoUrl,
       },
     });
 
