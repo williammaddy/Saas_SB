@@ -87,6 +87,94 @@ function ItemsPageContent() {
   const [adjusting, setAdjusting] = useState(false);
   const [stockError, setStockError] = useState<string | null>(null);
 
+  // CSV Import Modal states
+  const [isImportOpen, setIsImportOpen] = useState(false);
+  const [importing, setImporting] = useState(false);
+  const [importMessage, setImportMessage] = useState<string | null>(null);
+  const [importError, setImportError] = useState<string | null>(null);
+
+  const handleDownloadTemplate = () => {
+    const csvContent = "data:text/csv;charset=utf-8,Name,Type,SellingPrice,PurchasePrice,Unit,Stock,MinimumStock,Category,Description,SKU,Barcode,TaxRate\nSample Product,PRODUCT,150,100,pcs,25,5,Groceries,Sample product description,SKU-001,8901234567,18\nSample Service,SERVICE,500,,hr,,,,Beauty & Salon,Sample service description,,";
+    const encodedUri = encodeURI(csvContent);
+    const link = document.createElement("a");
+    link.setAttribute("href", encodedUri);
+    link.setAttribute("download", "laxzflow_product_import_template.csv");
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+  };
+
+  const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    setImporting(true);
+    setImportMessage(null);
+    setImportError(null);
+
+    try {
+      const text = await file.text();
+      const lines = text.split(/\r?\n/).map((l) => l.trim()).filter(Boolean);
+
+      if (lines.length <= 1) {
+        throw new Error("CSV file is empty or missing headers");
+      }
+
+      const headers = lines[0].split(",").map((h) => h.replace(/^["']|["']$/g, "").trim().toLowerCase());
+      const parsedItems = [];
+
+      for (let i = 1; i < lines.length; i++) {
+        const row = lines[i].split(",").map((val) => val.replace(/^["']|["']$/g, "").trim());
+
+        const getVal = (key: string) => {
+          const idx = headers.indexOf(key.toLowerCase());
+          return idx !== -1 && row[idx] !== undefined ? row[idx] : "";
+        };
+
+        const name = getVal("name");
+        if (!name) continue;
+
+        parsedItems.push({
+          name,
+          type: getVal("type").toUpperCase() === "SERVICE" ? "SERVICE" : "PRODUCT",
+          sellingPrice: getVal("sellingprice") || getVal("price") || "0",
+          purchasePrice: getVal("purchaseprice") || getVal("cost") || "",
+          unit: getVal("unit") || "pcs",
+          stock: getVal("stock") || getVal("quantity") || getVal("qty") || "0",
+          minimumStock: getVal("minimumstock") || getVal("minstock") || "0",
+          category: getVal("category") || "",
+          description: getVal("description") || "",
+          sku: getVal("sku") || "",
+          barcode: getVal("barcode") || "",
+          taxRate: getVal("taxrate") || getVal("gst") || "0",
+        });
+      }
+
+      if (parsedItems.length === 0) {
+        throw new Error("No valid item rows found in CSV file");
+      }
+
+      const res = await fetch("/api/items/import", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ items: parsedItems }),
+      });
+
+      const data = await res.json();
+      if (!res.ok) {
+        throw new Error(data.error || "Failed to import CSV");
+      }
+
+      setImportMessage(`🎉 Successfully imported ${data.importedCount} products/services!`);
+      fetchItems();
+    } catch (err: any) {
+      setImportError(err.message || "Failed to parse CSV file");
+    } finally {
+      setImporting(false);
+      e.target.value = "";
+    }
+  };
+
   const fetchItems = async () => {
     setLoading(true);
     try {
@@ -440,13 +528,13 @@ function ItemsPageContent() {
             <form onSubmit={handleFilterSearch} className="space-y-3">
               <div className="flex items-center justify-between border-b border-slate-200 pb-2 mb-2">
                 <h3 className="text-xs font-bold text-slate-800 uppercase tracking-wider flex items-center gap-1.5">
-                  <Filter className="w-3.5 h-3.5 text-indigo-600" />
+                  <Filter className="w-3.5 h-3.5 text-slate-900" />
                   Search Products / Services Filter
                 </h3>
                 <button
                   type="button"
                   onClick={() => setStatusFilter(statusFilter === "ACTIVE" ? "ALL" : "ACTIVE")}
-                  className="text-xs text-indigo-600 hover:text-indigo-800 font-semibold"
+                  className="text-xs text-slate-900 hover:text-slate-700 font-semibold"
                 >
                   {statusFilter === "ACTIVE" ? "Include Archived Items" : "Showing All (Click for Active Only)"}
                 </button>
@@ -562,6 +650,9 @@ function ItemsPageContent() {
             <Button size="sm" onClick={openAddModal} icon={<Plus className="w-3.5 h-3.5" />}>
               + New Product/Service
             </Button>
+            <Button variant="outline" size="sm" onClick={() => setIsImportOpen(true)} icon={<Download className="w-3.5 h-3.5 rotate-180" />}>
+              + Import CSV
+            </Button>
             <Button variant="outline" size="sm" onClick={handleExportCSV} icon={<FileSpreadsheet className="w-3.5 h-3.5" />}>
               Export CSV
             </Button>
@@ -636,7 +727,7 @@ function ItemsPageContent() {
                               {it.type === "SERVICE" ? (
                                 <Scissors className="w-3.5 h-3.5 text-purple-600 shrink-0" />
                               ) : (
-                                <Package className="w-3.5 h-3.5 text-indigo-600 shrink-0" />
+                                <Package className="w-3.5 h-3.5 text-slate-900 shrink-0" />
                               )}
                               <span>{it.name}</span>
                               {!it.isActive && (
@@ -706,7 +797,7 @@ function ItemsPageContent() {
                                 <button
                                   type="button"
                                   onClick={() => openStockModal(it)}
-                                  className="text-[11px] px-2 py-0.5 bg-indigo-50 hover:bg-indigo-100 text-indigo-700 font-bold rounded transition-colors"
+                                  className="text-[11px] px-2 py-0.5 bg-slate-100 hover:bg-slate-200 text-slate-900 font-bold rounded transition-colors"
                                   title="Adjust Stock (+/-)"
                                 >
                                   + / - Stock
@@ -716,7 +807,7 @@ function ItemsPageContent() {
                               <button
                                 type="button"
                                 onClick={() => openEditModal(it)}
-                                className="p-1 text-slate-400 hover:text-indigo-600 hover:bg-slate-100 rounded transition-colors"
+                                className="p-1 text-slate-400 hover:text-slate-900 hover:bg-slate-100 rounded transition-colors"
                                 title="Edit"
                               >
                                 <Edit2 className="w-3.5 h-3.5" />
@@ -747,7 +838,7 @@ function ItemsPageContent() {
                       <td colSpan={3} className="py-3 px-3 uppercase tracking-wider text-right">
                         TOTAL ALL ({reportSummary.itemCount} Items)
                       </td>
-                      <td className="py-3 px-3 text-center font-mono text-sm text-indigo-300">
+                      <td className="py-3 px-3 text-center font-mono text-sm text-slate-300">
                         {reportSummary.totalQty}
                       </td>
                       <td className="py-3 px-3 text-right font-mono text-sm text-emerald-400">
@@ -1052,6 +1143,75 @@ function ItemsPageContent() {
             </Button>
           </div>
         </form>
+      </Modal>
+
+      {/* CSV Import Modal */}
+      <Modal
+        isOpen={isImportOpen}
+        onClose={() => {
+          setIsImportOpen(false);
+          setImportMessage(null);
+          setImportError(null);
+        }}
+        title="Import Products & Services via CSV"
+        description="Upload a CSV file containing your product catalog or inventory list"
+      >
+        <div className="space-y-4">
+          {importMessage && (
+            <div className="p-3 bg-emerald-50 border border-emerald-200 text-emerald-800 text-xs font-bold rounded-lg">
+              {importMessage}
+            </div>
+          )}
+
+          {importError && (
+            <div className="p-3 bg-rose-50 border border-rose-200 text-rose-700 text-xs font-bold rounded-lg">
+              {importError}
+            </div>
+          )}
+
+          <div className="p-4 bg-slate-50 border border-slate-200 rounded-xl space-y-2">
+            <h4 className="text-xs font-bold text-slate-800 uppercase tracking-wide">CSV Template Format</h4>
+            <p className="text-xs text-slate-600 leading-relaxed">
+              Your CSV should include column headers: <strong>Name, Type, SellingPrice, PurchasePrice, Unit, Stock, MinimumStock, Category, Description, SKU, Barcode, TaxRate</strong>.
+            </p>
+            <Button
+              type="button"
+              variant="outline"
+              size="sm"
+              onClick={handleDownloadTemplate}
+              icon={<FileSpreadsheet className="w-3.5 h-3.5" />}
+            >
+              Download Sample CSV Template
+            </Button>
+          </div>
+
+          <div className="border-2 border-dashed border-slate-300 rounded-xl p-6 text-center hover:border-slate-400 transition-colors bg-white">
+            <input
+              type="file"
+              accept=".csv,text/csv"
+              onChange={handleFileChange}
+              disabled={importing}
+              className="block w-full text-xs text-slate-500 file:mr-4 file:py-2 file:px-4 file:rounded-lg file:border-0 file:text-xs file:font-bold file:bg-slate-900 file:text-white hover:file:bg-black cursor-pointer"
+            />
+            <p className="text-[11px] text-slate-400 mt-2">
+              {importing ? "Parsing and importing catalog items..." : "Select a .csv file from your computer"}
+            </p>
+          </div>
+
+          <div className="flex justify-end pt-2 border-t border-slate-100">
+            <Button
+              type="button"
+              variant="outline"
+              onClick={() => {
+                setIsImportOpen(false);
+                setImportMessage(null);
+                setImportError(null);
+              }}
+            >
+              Close
+            </Button>
+          </div>
+        </div>
       </Modal>
     </AppLayout>
   );

@@ -460,7 +460,7 @@ export function QuickBill({ organization }: QuickBillProps) {
     try {
       const payload = {
         customerId: selectedCustomerId === "WALK_IN" ? null : selectedCustomerId,
-        customerName: activeCustomer?.name || undefined,
+        customerName: activeCustomer?.name || "Direct Customer",
         customerPhone: activeCustomer?.phone || undefined,
         customerEmail: activeCustomer?.email || undefined,
         customerAddress: activeCustomer?.address || undefined,
@@ -508,7 +508,7 @@ export function QuickBill({ organization }: QuickBillProps) {
       {/* ============================================================ */}
       <div className="relative">
         <div className="flex items-center gap-2 bg-slate-900 text-white p-2.5 sm:p-3 rounded-2xl shadow-md border border-slate-800">
-          <div className="pl-2 text-indigo-400">
+          <div className="pl-2 text-slate-400">
             <Barcode className="w-5 h-5" />
           </div>
           <input
@@ -539,15 +539,15 @@ export function QuickBill({ organization }: QuickBillProps) {
               <div
                 key={item.id}
                 onClick={() => addItemFromCatalog(item)}
-                className={`p-3 cursor-pointer flex items-center justify-between hover:bg-indigo-50 transition-colors ${
-                  idx === selectedIndex ? "bg-indigo-50 text-indigo-900 font-bold" : "text-slate-800"
+                className={`p-3 cursor-pointer flex items-center justify-between hover:bg-slate-100 transition-colors ${
+                  idx === selectedIndex ? "bg-slate-900 text-white font-bold" : "text-slate-800"
                 }`}
               >
                 <div className="flex items-center gap-3">
                   <span className="font-bold text-xs">{item.name}</span>
                   {item.sku && <span className="text-[10px] text-slate-400 font-mono">SKU: {item.sku}</span>}
                 </div>
-                <span className="font-mono font-bold text-xs text-indigo-600">
+                <span className="font-mono font-bold text-xs text-slate-900">
                   {formatCurrency(item.sellingPrice, organization.currency)}
                 </span>
               </div>
@@ -572,7 +572,7 @@ export function QuickBill({ organization }: QuickBillProps) {
                   onClick={() => setSelectedCustomerId("WALK_IN")}
                   className={`text-xs px-3 py-1.5 rounded-lg font-bold transition-all ${
                     selectedCustomerId === "WALK_IN"
-                      ? "bg-indigo-600 text-white shadow"
+                      ? "bg-slate-900 text-white shadow"
                       : "bg-slate-100 text-slate-600 hover:bg-slate-200"
                   }`}
                 >
@@ -610,12 +610,12 @@ export function QuickBill({ organization }: QuickBillProps) {
           <Card className="border-2 border-slate-300 shadow-md bg-white overflow-hidden rounded-2xl">
             <div className="p-4 bg-slate-900 text-white flex flex-wrap items-center justify-between gap-2">
               <div className="flex items-center gap-3">
-                <FileSpreadsheet className="w-5 h-5 text-indigo-400" />
+                <FileSpreadsheet className="w-5 h-5 text-slate-300" />
                 <h3 className="text-sm sm:text-base font-extrabold uppercase tracking-wide text-white">
                   Excel Billing Sheet ({validBillingItems.length} active items)
                 </h3>
               </div>
-              <span className="text-xs font-semibold text-indigo-300 bg-indigo-950/80 px-3 py-1 rounded-full border border-indigo-700/50">
+              <span className="text-xs font-semibold text-slate-200 bg-slate-800 px-3 py-1 rounded-full border border-slate-700">
                 Senior Friendly • Press ENTER to jump to next row
               </span>
             </div>
@@ -664,7 +664,7 @@ export function QuickBill({ organization }: QuickBillProps) {
                         : [];
 
                     return (
-                      <tr key={idx} className="hover:bg-indigo-50/60 transition-colors h-14">
+                      <tr key={idx} className="hover:bg-slate-100/80 transition-colors h-14">
                         {/* Row Number */}
                         <td className="py-2.5 px-3 text-center font-black text-sm text-slate-600 font-mono border-r border-slate-300 bg-slate-100/70">
                           {idx + 1}
@@ -675,7 +675,7 @@ export function QuickBill({ organization }: QuickBillProps) {
                           <input
                             id={`row-name-${idx}`}
                             type="text"
-                            className="w-full font-bold text-sm sm:text-base text-slate-900 bg-slate-50/60 border-2 border-slate-300 hover:border-slate-400 focus:border-indigo-600 focus:bg-white rounded-lg px-3 py-2 transition-all focus:outline-none placeholder:text-slate-400 shadow-xs"
+                            className="w-full font-bold text-sm sm:text-base text-slate-900 bg-slate-50/60 border-2 border-slate-300 hover:border-slate-400 focus:border-slate-900 focus:bg-white rounded-lg px-3 py-2 transition-all focus:outline-none placeholder:text-slate-400 shadow-xs"
                             placeholder="Type any product / service name..."
                             value={item.name}
                             onChange={(e) => {
@@ -690,18 +690,18 @@ export function QuickBill({ organization }: QuickBillProps) {
 
                           {/* Inline Catalog Suggestions Dropdown */}
                           {activeCellRowIndex === idx && cellSuggestions.length > 0 && (
-                            <div className="absolute z-50 left-2 right-2 top-full mt-1 bg-white rounded-xl shadow-2xl border-2 border-indigo-200 divide-y divide-slate-100 max-h-56 overflow-y-auto">
-                              <div className="px-3 py-1.5 bg-indigo-50 text-xs font-extrabold text-indigo-900 uppercase tracking-wide">
+                            <div className="absolute z-50 left-2 right-2 top-full mt-1 bg-white rounded-xl shadow-2xl border-2 border-slate-300 divide-y divide-slate-100 max-h-56 overflow-y-auto">
+                              <div className="px-3 py-1.5 bg-slate-100 text-xs font-extrabold text-slate-900 uppercase tracking-wide">
                                 Catalog Quick Match:
                               </div>
                               {cellSuggestions.map((catItem) => (
                                 <div
                                   key={catItem.id}
                                   onClick={() => selectCatalogIntoRow(idx, catItem)}
-                                  className="p-3 cursor-pointer hover:bg-indigo-100/70 flex justify-between items-center text-sm font-semibold text-slate-900 transition-colors"
+                                  className="p-3 cursor-pointer hover:bg-slate-100 flex justify-between items-center text-sm font-semibold text-slate-900 transition-colors"
                                 >
                                   <span className="font-bold text-slate-900">{catItem.name}</span>
-                                  <span className="font-mono text-indigo-700 font-extrabold">
+                                  <span className="font-mono text-slate-900 font-extrabold">
                                     ₹{catItem.sellingPrice}
                                   </span>
                                 </div>
@@ -716,7 +716,7 @@ export function QuickBill({ organization }: QuickBillProps) {
                             id={`row-qty-${idx}`}
                             type="number"
                             min="1"
-                            className="w-full text-center font-black text-sm sm:text-base text-slate-900 bg-slate-50/60 border-2 border-slate-300 hover:border-slate-400 focus:border-indigo-600 focus:bg-white rounded-lg px-2 py-2 transition-all font-mono focus:outline-none shadow-xs"
+                            className="w-full text-center font-black text-sm sm:text-base text-slate-900 bg-slate-50/60 border-2 border-slate-300 hover:border-slate-400 focus:border-slate-900 focus:bg-white rounded-lg px-2 py-2 transition-all font-mono focus:outline-none shadow-xs"
                             value={item.quantity}
                             onChange={(e) => updateCell(idx, "quantity", Math.max(1, Number(e.target.value) || 1))}
                             onKeyDown={(e) => handleCellKeyDown(e, idx, "qty")}
@@ -728,7 +728,7 @@ export function QuickBill({ organization }: QuickBillProps) {
                           <input
                             id={`row-unit-${idx}`}
                             type="text"
-                            className="w-full text-center font-bold text-xs sm:text-sm text-slate-800 bg-slate-50/60 border-2 border-slate-300 hover:border-slate-400 focus:border-indigo-600 focus:bg-white rounded-lg px-1.5 py-2 font-mono focus:outline-none shadow-xs"
+                            className="w-full text-center font-bold text-xs sm:text-sm text-slate-800 bg-slate-50/60 border-2 border-slate-300 hover:border-slate-400 focus:border-slate-900 focus:bg-white rounded-lg px-1.5 py-2 font-mono focus:outline-none shadow-xs"
                             value={item.unit}
                             onChange={(e) => updateCell(idx, "unit", e.target.value)}
                             onKeyDown={(e) => handleCellKeyDown(e, idx, "unit")}
@@ -743,7 +743,7 @@ export function QuickBill({ organization }: QuickBillProps) {
                             type="number"
                             step="0.01"
                             min="0"
-                            className="w-full text-right font-black text-sm sm:text-base text-slate-900 bg-slate-50/60 border-2 border-slate-300 hover:border-slate-400 focus:border-indigo-600 focus:bg-white rounded-lg px-3 py-2 transition-all font-mono focus:outline-none shadow-xs"
+                            className="w-full text-right font-black text-sm sm:text-base text-slate-900 bg-slate-50/60 border-2 border-slate-300 hover:border-slate-400 focus:border-slate-900 focus:bg-white rounded-lg px-3 py-2 transition-all font-mono focus:outline-none shadow-xs"
                             value={item.unitPrice || ""}
                             onChange={(e) => updateCell(idx, "unitPrice", Number(e.target.value) || 0)}
                             onKeyDown={(e) => handleCellKeyDown(e, idx, "price")}
@@ -758,7 +758,7 @@ export function QuickBill({ organization }: QuickBillProps) {
                             type="number"
                             step="0.01"
                             min="0"
-                            className="w-full text-right font-bold text-xs sm:text-sm text-slate-800 bg-slate-50/60 border-2 border-slate-300 hover:border-slate-400 focus:border-indigo-600 focus:bg-white rounded-lg px-2 py-2 font-mono focus:outline-none shadow-xs"
+                            className="w-full text-right font-bold text-xs sm:text-sm text-slate-800 bg-slate-50/60 border-2 border-slate-300 hover:border-slate-400 focus:border-slate-900 focus:bg-white rounded-lg px-2 py-2 font-mono focus:outline-none shadow-xs"
                             value={item.discountAmount || ""}
                             onChange={(e) => updateCell(idx, "discountAmount", Number(e.target.value) || 0)}
                             onKeyDown={(e) => handleCellKeyDown(e, idx, "discount")}
@@ -775,7 +775,7 @@ export function QuickBill({ organization }: QuickBillProps) {
                               step="0.5"
                               min="0"
                               max="100"
-                              className="w-full text-center font-bold text-xs sm:text-sm text-slate-800 bg-slate-50/60 border-2 border-slate-300 hover:border-slate-400 focus:border-indigo-600 focus:bg-white rounded-lg px-1.5 py-2 font-mono focus:outline-none shadow-xs"
+                              className="w-full text-center font-bold text-xs sm:text-sm text-slate-800 bg-slate-50/60 border-2 border-slate-300 hover:border-slate-400 focus:border-slate-900 focus:bg-white rounded-lg px-1.5 py-2 font-mono focus:outline-none shadow-xs"
                               value={item.taxRate}
                               onChange={(e) => updateCell(idx, "taxRate", Number(e.target.value) || 0)}
                               onKeyDown={(e) => handleCellKeyDown(e, idx, "tax")}
@@ -784,7 +784,7 @@ export function QuickBill({ organization }: QuickBillProps) {
                         )}
 
                         {/* Live Total Amount Cell */}
-                        <td className="py-2.5 px-3 text-right font-black text-sm sm:text-base text-indigo-700 font-mono border-r border-slate-300 bg-indigo-50/70">
+                        <td className="py-2.5 px-3 text-right font-black text-sm sm:text-base text-slate-950 font-mono border-r border-slate-300 bg-slate-100">
                           {formatCurrency(lineTotal, organization.currency)}
                         </td>
 
@@ -811,7 +811,7 @@ export function QuickBill({ organization }: QuickBillProps) {
                   type="button"
                   size="md"
                   onClick={addBlankRowAndFocus}
-                  className="bg-indigo-50 border-2 border-indigo-600 text-indigo-700 font-extrabold hover:bg-indigo-600 hover:text-white text-sm py-2.5 px-4 rounded-xl shadow-xs transition-all flex items-center gap-2"
+                  className="bg-slate-900 border-2 border-slate-900 text-white font-extrabold hover:bg-black text-sm py-2.5 px-4 rounded-xl shadow-xs transition-all flex items-center gap-2"
                 >
                   <Plus className="w-4 h-4 stroke-[3]" />
                   + Add Excel Row (or Press Enter on last row)
@@ -827,7 +827,7 @@ export function QuickBill({ organization }: QuickBillProps) {
                         key={catItem.id}
                         type="button"
                         onClick={() => addItemFromCatalog(catItem)}
-                        className="text-xs px-2.5 py-1 bg-white border border-slate-300 hover:border-indigo-600 hover:text-indigo-700 hover:bg-indigo-50 rounded-lg font-bold text-slate-800 transition-all shadow-xs"
+                        className="text-xs px-2.5 py-1 bg-white border border-slate-300 hover:border-slate-900 hover:text-slate-900 hover:bg-slate-100 rounded-lg font-bold text-slate-800 transition-all shadow-xs"
                       >
                         + {catItem.name}
                       </button>
@@ -867,14 +867,14 @@ export function QuickBill({ organization }: QuickBillProps) {
                     <button
                       type="button"
                       onClick={() => setDiscountType("FIXED")}
-                      className={`px-2.5 py-1 font-medium ${discountType === "FIXED" ? "bg-indigo-600 text-white" : "bg-white text-slate-600"}`}
+                      className={`px-2.5 py-1 font-medium ${discountType === "FIXED" ? "bg-slate-950 text-white" : "bg-white text-slate-600"}`}
                     >
                       ₹ Fixed
                     </button>
                     <button
                       type="button"
                       onClick={() => setDiscountType("PERCENTAGE")}
-                      className={`px-2.5 py-1 font-medium ${discountType === "PERCENTAGE" ? "bg-indigo-600 text-white" : "bg-white text-slate-600"}`}
+                      className={`px-2.5 py-1 font-medium ${discountType === "PERCENTAGE" ? "bg-slate-950 text-white" : "bg-white text-slate-600"}`}
                     >
                       % Percent
                     </button>
@@ -902,7 +902,7 @@ export function QuickBill({ organization }: QuickBillProps) {
                     }}
                     className={`p-2.5 rounded-xl border text-xs font-bold flex items-center justify-center gap-1.5 transition-all ${
                       !isCredit && paymentMethod === "CASH"
-                        ? "bg-indigo-600 text-white border-indigo-600 shadow"
+                        ? "bg-slate-950 text-white border-slate-950 shadow"
                         : "bg-white text-slate-700 border-slate-200 hover:bg-slate-50"
                     }`}
                   >
@@ -918,7 +918,7 @@ export function QuickBill({ organization }: QuickBillProps) {
                     }}
                     className={`p-2.5 rounded-xl border text-xs font-bold flex items-center justify-center gap-1.5 transition-all ${
                       !isCredit && paymentMethod === "UPI"
-                        ? "bg-indigo-600 text-white border-indigo-600 shadow"
+                        ? "bg-slate-950 text-white border-slate-950 shadow"
                         : "bg-white text-slate-700 border-slate-200 hover:bg-slate-50"
                     }`}
                   >
@@ -934,7 +934,7 @@ export function QuickBill({ organization }: QuickBillProps) {
                     }}
                     className={`p-2.5 rounded-xl border text-xs font-bold flex items-center justify-center gap-1.5 transition-all ${
                       !isCredit && paymentMethod === "CARD"
-                        ? "bg-indigo-600 text-white border-indigo-600 shadow"
+                        ? "bg-slate-950 text-white border-slate-950 shadow"
                         : "bg-white text-slate-700 border-slate-200 hover:bg-slate-50"
                     }`}
                   >
@@ -1029,7 +1029,7 @@ export function QuickBill({ organization }: QuickBillProps) {
 
                 <div className="flex justify-between text-lg font-black text-slate-900 pt-2 border-t border-slate-200">
                   <span>Grand Total</span>
-                  <span className="text-indigo-600 font-mono">
+                  <span className="text-slate-950 font-mono">
                     {formatCurrency(calculation.grandTotal, organization.currency)}
                   </span>
                 </div>
@@ -1045,7 +1045,7 @@ export function QuickBill({ organization }: QuickBillProps) {
               {/* 1-Click Complete Sale Button */}
               <Button
                 size="lg"
-                className="w-full text-base font-bold shadow-lg shadow-indigo-600/30 py-3.5"
+                className="w-full text-base font-bold shadow-lg shadow-slate-950/20 py-3.5"
                 loading={submitting}
                 onClick={handleGenerateBill}
                 icon={<CheckCircle2 className="w-5 h-5" />}

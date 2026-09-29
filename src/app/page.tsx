@@ -31,13 +31,13 @@ export default async function HomePage() {
   }
 
   return (
-    <div className="min-h-screen bg-slate-50 text-slate-900 flex flex-col">
+    <div className="min-h-screen bg-surface text-slate-900 flex flex-col">
       <header className="px-6 py-4 max-w-6xl mx-auto w-full flex items-center justify-between">
         <div className="flex items-center gap-2.5">
-          <div className="w-8 h-8 rounded-lg bg-indigo-600 flex items-center justify-center font-bold text-white text-sm">
-            B
+          <div className="w-8 h-8 rounded-lg bg-black flex items-center justify-center font-bold text-white text-sm">
+            laxz*
           </div>
-          <span className="text-lg font-semibold tracking-tight">BizFlow</span>
+          <span className="text-lg font-semibold tracking-tight">Laxzflow</span>
         </div>
 
         <div className="flex items-center gap-2">
@@ -51,7 +51,7 @@ export default async function HomePage() {
       </header>
 
       <main className="flex-1 max-w-4xl mx-auto px-6 py-16 sm:py-24 text-center">
-        <p className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-indigo-50 text-indigo-700 text-xs font-medium mb-6">
+        <p className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-brand-50 text-brand-700 text-xs font-medium mb-6">
           <Zap className="w-3.5 h-3.5" />
           Simple business OS for small teams
         </p>
@@ -97,9 +97,9 @@ export default async function HomePage() {
           ].map((feature) => (
             <div
               key={feature.title}
-              className="p-5 rounded-xl bg-white border border-slate-200"
+              className="p-5 rounded-xl bg-white border border-border"
             >
-              <feature.icon className="w-5 h-5 text-indigo-600 mb-3" />
+              <feature.icon className="w-5 h-5 text-brand-700 mb-3" />
               <h3 className="text-sm font-semibold text-slate-900">{feature.title}</h3>
               <p className="text-sm text-slate-500 mt-1 leading-relaxed">{feature.body}</p>
             </div>
@@ -107,8 +107,8 @@ export default async function HomePage() {
         </div>
       </main>
 
-      <footer className="px-6 py-5 border-t border-slate-200 text-center text-xs text-slate-500">
-        © 2026 BizFlow
+      <footer className="px-6 py-5 border-t border-border text-center text-xs text-slate-500">
+        © 2026 Laxzflow
       </footer>
     </div>
   );

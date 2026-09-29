@@ -20,7 +20,7 @@ export function InvoicePrintView({ invoice, formatType = "A4" }: InvoicePrintVie
   const businessEmail = invoice.businessEmail || org.email;
   const businessGstin = invoice.businessGstin || org.gstin;
 
-  const brandColor = invoice.brandColor || org.brandColor || "#4f46e5";
+  const brandColor = invoice.brandColor || org.brandColor || "#6f5e51";
   const logoUrl = invoice.logoUrl || org.logoUrl;
 
   const isGstEnabled = invoice.isGst ?? org.gstEnabled ?? false;

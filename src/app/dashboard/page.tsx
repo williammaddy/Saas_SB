@@ -101,19 +101,19 @@ export default function DashboardPage() {
                 <div className="flex bg-slate-100 p-0.5 rounded text-[10px] font-medium text-slate-600">
                   <button
                     onClick={() => setSalesFilter("today")}
-                    className={`px-1.5 py-0.5 rounded ${salesFilter === "today" ? "bg-white font-bold text-indigo-600 shadow-xs" : ""}`}
+                    className={`px-1.5 py-0.5 rounded ${salesFilter === "today" ? "bg-white font-bold text-slate-900 shadow-xs" : ""}`}
                   >
                     1D
                   </button>
                   <button
                     onClick={() => setSalesFilter("week")}
-                    className={`px-1.5 py-0.5 rounded ${salesFilter === "week" ? "bg-white font-bold text-indigo-600 shadow-xs" : ""}`}
+                    className={`px-1.5 py-0.5 rounded ${salesFilter === "week" ? "bg-white font-bold text-slate-900 shadow-xs" : ""}`}
                   >
                     1W
                   </button>
                   <button
                     onClick={() => setSalesFilter("month")}
-                    className={`px-1.5 py-0.5 rounded ${salesFilter === "month" ? "bg-white font-bold text-indigo-600 shadow-xs" : ""}`}
+                    className={`px-1.5 py-0.5 rounded ${salesFilter === "month" ? "bg-white font-bold text-slate-900 shadow-xs" : ""}`}
                   >
                     1M
                   </button>
@@ -161,7 +161,7 @@ export default function DashboardPage() {
             <CardContent className="p-4 sm:p-5">
               <div className="flex items-center justify-between mb-2">
                 <span className="text-[11px] font-bold uppercase tracking-wider text-slate-500">Customers</span>
-                <Users className="w-4 h-4 text-indigo-500" />
+                <Users className="w-4 h-4 text-slate-800" />
               </div>
               <p className="text-xl sm:text-2xl font-semibold text-slate-900 tracking-tight">
                 {metrics.totalCustomers || 0}
@@ -233,7 +233,7 @@ export default function DashboardPage() {
                       className="p-3.5 sm:px-5 flex items-center justify-between hover:bg-slate-50 transition-colors"
                     >
                       <div className="flex items-center gap-3">
-                        <div className="w-8 h-8 rounded-lg bg-indigo-50 text-indigo-600 flex items-center justify-center font-bold font-mono">
+                        <div className="w-8 h-8 rounded-lg bg-slate-100 text-slate-900 flex items-center justify-center font-bold font-mono">
                           <Receipt className="w-4 h-4" />
                         </div>
                         <div>

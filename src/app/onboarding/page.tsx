@@ -127,8 +127,8 @@ export default function OnboardingPage() {
       <div className="max-w-xl mx-auto w-full">
         {/* Wizard Header */}
         <div className="text-center mb-8">
-          <div className="w-10 h-10 rounded-xl bg-indigo-600 flex items-center justify-center font-black text-white text-lg mx-auto shadow-md shadow-indigo-600/30">
-            B
+          <div className="w-10 h-10 rounded-xl bg-brand-700 flex items-center justify-center font-black text-white text-lg mx-auto shadow-md shadow-brand-700/30">
+            laxz*
           </div>
           <h2 className="mt-3 text-xl font-bold text-slate-900">Set Up Your Business</h2>
           <p className="text-xs text-slate-500 mt-0.5">Step {step} of 3 • Takes less than 1 minute</p>
@@ -140,7 +140,7 @@ export default function OnboardingPage() {
                 key={s}
                 className={`h-1.5 rounded-full transition-all ${
                   s === step
-                    ? "w-8 bg-indigo-600"
+                    ? "w-8 bg-brand-700"
                     : s < step
                     ? "w-4 bg-emerald-500"
                     : "w-4 bg-slate-200"
@@ -162,7 +162,7 @@ export default function OnboardingPage() {
             {/* STEP 1: Business Profile */}
             {step === 1 && (
               <div className="space-y-4">
-                <div className="flex items-center gap-2 text-indigo-600 mb-2">
+                <div className="flex items-center gap-2 text-brand-700 mb-2">
                   <Building2 className="w-4 h-4" />
                   <h3 className="text-sm font-bold text-slate-900">Step 1: Business Profile</h3>
                 </div>
@@ -251,7 +251,7 @@ export default function OnboardingPage() {
             {/* STEP 2: Regional Defaults */}
             {step === 2 && (
               <div className="space-y-4">
-                <div className="flex items-center gap-2 text-indigo-600 mb-2">
+                <div className="flex items-center gap-2 text-brand-700 mb-2">
                   <Globe2 className="w-4 h-4" />
                   <h3 className="text-sm font-bold text-slate-900">Step 2: Region & Currency</h3>
                 </div>
@@ -334,7 +334,7 @@ export default function OnboardingPage() {
             {/* STEP 3: Tax / GST Settings */}
             {step === 3 && (
               <div className="space-y-4">
-                <div className="flex items-center gap-2 text-indigo-600 mb-2">
+                <div className="flex items-center gap-2 text-brand-700 mb-2">
                   <Receipt className="w-4 h-4" />
                   <h3 className="text-sm font-bold text-slate-900">Step 3: GST Configuration</h3>
                 </div>
@@ -350,7 +350,7 @@ export default function OnboardingPage() {
                       onClick={() => setGstEnabled(true)}
                       className={`p-3 rounded-xl border text-xs font-bold transition-all ${
                         gstEnabled
-                          ? "bg-indigo-600 text-white border-indigo-600 shadow-sm"
+                          ? "bg-brand-700 text-white border-brand-700 shadow-sm"
                           : "bg-white text-slate-700 border-slate-200 hover:bg-slate-50"
                       }`}
                     >
@@ -361,7 +361,7 @@ export default function OnboardingPage() {
                       onClick={() => setGstEnabled(false)}
                       className={`p-3 rounded-xl border text-xs font-bold transition-all ${
                         !gstEnabled
-                          ? "bg-indigo-600 text-white border-indigo-600 shadow-sm"
+                          ? "bg-brand-700 text-white border-brand-700 shadow-sm"
                           : "bg-white text-slate-700 border-slate-200 hover:bg-slate-50"
                       }`}
                     >
@@ -426,7 +426,7 @@ export default function OnboardingPage() {
                     onClick={handleComplete}
                     icon={<Check className="w-4 h-4" />}
                   >
-                    Launch BizFlow
+                    Launch Laxzflow
                   </Button>
                 </div>
               </div>

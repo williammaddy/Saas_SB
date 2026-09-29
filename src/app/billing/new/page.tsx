@@ -30,7 +30,7 @@ export default function NewBillingPage() {
     <AppLayout title="New Bill / Quick Checkout">
       {loading || !org ? (
         <div className="flex items-center justify-center py-20">
-          <Loader2 className="w-6 h-6 text-indigo-600 animate-spin" />
+          <Loader2 className="w-6 h-6 text-slate-900 animate-spin" />
         </div>
       ) : (
         <QuickBill organization={org} />

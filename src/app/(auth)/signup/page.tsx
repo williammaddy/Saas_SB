@@ -54,8 +54,8 @@ export default function SignupPage() {
     <div className="min-h-screen bg-slate-50 flex flex-col justify-center py-10 px-4">
       <div className="mx-auto w-full max-w-md text-center">
         <Link href="/" className="inline-flex flex-col items-center">
-          <div className="w-10 h-10 rounded-lg bg-indigo-600 flex items-center justify-center font-bold text-white">
-            B
+          <div className="w-10 h-10 rounded-lg bg-black flex items-center justify-center font-bold text-white text-sm">
+            laxz*
           </div>
           <h1 className="mt-4 text-xl font-semibold text-slate-900 tracking-tight">Create your workspace</h1>
         </Link>
@@ -134,7 +134,7 @@ export default function SignupPage() {
 
             <p className="mt-5 text-center text-sm text-slate-500 border-t border-slate-100 pt-4">
               Already have an account?{" "}
-              <Link href="/login" className="text-indigo-600 font-medium hover:underline">
+              <Link href="/login" className="text-brand-700 font-medium hover:underline">
                 Sign in
               </Link>
             </p>

@@ -70,17 +70,21 @@ export function Sidebar({ organization, user, isOpen, onClose }: SidebarProps) {
 
       <aside
         className={clsx(
-          "fixed top-0 bottom-0 left-0 z-40 w-60 bg-white text-slate-800 flex flex-col transition-transform duration-200 ease-in-out lg:translate-x-0 border-r border-slate-200",
+          "fixed top-0 bottom-0 left-0 z-40 w-60 bg-white text-slate-800 flex flex-col transition-transform duration-200 ease-in-out lg:translate-x-0 border-r border-border",
           isOpen ? "translate-x-0" : "-translate-x-full"
         )}
       >
         {/* Brand Header */}
-        <div className="h-14 flex items-center justify-between px-4 border-b border-slate-200 shrink-0">
+        <div className="h-14 flex items-center justify-between px-4 border-b border-border shrink-0">
           <Link href="/dashboard" className="flex items-center gap-2.5">
-            <div className="w-8 h-8 rounded-lg bg-indigo-600 flex items-center justify-center font-bold text-white text-sm">
-              B
+            <div className="w-9 h-9 rounded-xl overflow-hidden bg-slate-900 border border-slate-200 shrink-0 flex items-center justify-center shadow-xs">
+              <img
+                src="/brand/laxz-logo.png"
+                alt="Laxzflow"
+                className="w-full h-full object-cover"
+              />
             </div>
-            <span className="font-semibold text-sm tracking-tight text-slate-900">BizFlow</span>
+            <span className="font-bold text-base tracking-tight text-slate-900">Laxzflow</span>
           </Link>
           {onClose && (
             <button
@@ -93,9 +97,9 @@ export function Sidebar({ organization, user, isOpen, onClose }: SidebarProps) {
           )}
         </div>
 
-        <div className="px-4 py-3 border-b border-slate-100 shrink-0">
+        <div className="px-4 py-3 border-b border-border shrink-0">
           <div className="flex items-center gap-2.5">
-            <div className="w-7 h-7 rounded-md bg-slate-100 flex items-center justify-center text-slate-500">
+            <div className="w-7 h-7 rounded-md bg-brand-100 flex items-center justify-center text-brand-600">
               <Building2 className="w-4 h-4" />
             </div>
             <div className="truncate flex-1">
@@ -124,13 +128,13 @@ export function Sidebar({ organization, user, isOpen, onClose }: SidebarProps) {
                 className={clsx(
                   "flex items-center gap-3 px-3 py-2 rounded-lg text-sm font-medium transition-colors",
                   item.highlight && !isActive
-                    ? "bg-indigo-50 text-indigo-700 hover:bg-indigo-100"
+                    ? "bg-brand-50 text-brand-700 hover:bg-brand-100"
                     : isActive
-                    ? "bg-indigo-600 text-white"
+                    ? "bg-brand-700 text-white"
                     : "text-slate-600 hover:bg-slate-50 hover:text-slate-900"
                 )}
               >
-                <Icon className={clsx("w-4 h-4", isActive ? "text-white" : item.highlight ? "text-indigo-600" : "text-slate-400")} />
+                <Icon className={clsx("w-4 h-4", isActive ? "text-white" : item.highlight ? "text-brand-600" : "text-slate-400")} />
                 <span>{item.label}</span>
               </Link>
             );
@@ -138,8 +142,8 @@ export function Sidebar({ organization, user, isOpen, onClose }: SidebarProps) {
         </nav>
 
         {/* User Footer */}
-        <div className="p-3 border-t border-slate-200 shrink-0">
-          <div className="flex items-center justify-between p-2 rounded-lg bg-slate-50">
+        <div className="p-3 border-t border-border shrink-0">
+          <div className="flex items-center justify-between p-2 rounded-lg bg-brand-50">
             <div className="truncate pr-2">
               <p className="text-xs font-semibold text-slate-900 truncate">{user?.name || "Owner"}</p>
               <p className="text-[11px] text-slate-500 truncate">{user?.email || ""}</p>

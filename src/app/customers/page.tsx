@@ -163,7 +163,7 @@ export default function CustomersPage() {
                         <td className="py-3.5 px-4">
                           <Link
                             href={`/customers/${c.id}`}
-                            className="font-bold text-slate-900 hover:text-indigo-600 block"
+                            className="font-bold text-slate-900 hover:text-slate-700 block"
                           >
                             {c.name}
                           </Link>

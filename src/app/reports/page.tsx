@@ -74,7 +74,7 @@ export default function ReportsPage() {
                 onClick={() => setRange(tab.id as any)}
                 className={`px-3 py-1.5 rounded-lg transition-colors ${
                   range === tab.id
-                    ? "bg-indigo-600 text-white font-bold shadow-sm"
+                    ? "bg-slate-900 text-white font-bold shadow-sm"
                     : "bg-slate-100 text-slate-600 hover:bg-slate-200"
                 }`}
               >
@@ -135,7 +135,7 @@ export default function ReportsPage() {
             <CardContent className="p-5">
               <div className="flex items-center justify-between mb-1">
                 <span className="text-[11px] font-bold uppercase tracking-wider text-slate-500">Net Margin</span>
-                <Award className="w-4 h-4 text-indigo-500" />
+                <Award className="w-4 h-4 text-slate-800" />
               </div>
               <p className={`text-2xl font-black font-mono ${summary.netProfit >= 0 ? "text-emerald-600" : "text-rose-600"}`}>
                 {formatCurrency(summary.netProfit || 0)}
@@ -175,7 +175,7 @@ export default function ReportsPage() {
                   {topSellingItems.map((it: any, index: number) => (
                     <div key={index} className="p-4 flex items-center justify-between hover:bg-slate-50">
                       <div className="flex items-center gap-3">
-                        <span className="w-6 h-6 rounded-full bg-indigo-50 text-indigo-700 font-bold flex items-center justify-center text-xs">
+                        <span className="w-6 h-6 rounded-full bg-slate-100 text-slate-800 font-bold flex items-center justify-center text-xs">
                           {index + 1}
                         </span>
                         <div>
@@ -251,7 +251,7 @@ export default function ReportsPage() {
                   <tbody className="divide-y divide-slate-100">
                     {outstandingInvoices.map((inv: any) => (
                       <tr key={inv.id} className="hover:bg-slate-50">
-                        <td className="py-3 px-4 font-mono font-bold text-indigo-600">
+                        <td className="py-3 px-4 font-mono font-bold text-slate-900">
                           <Link href={`/invoices/${inv.id}`} className="hover:underline">
                             {inv.invoiceNumber}
                           </Link>

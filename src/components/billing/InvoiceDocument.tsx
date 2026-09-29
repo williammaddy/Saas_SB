@@ -46,7 +46,7 @@ export function InvoiceDocument({
     customization?.brandColor ||
     invoice.brandColor ||
     org.brandColor ||
-    "#4f46e5";
+    "#6f5e51";
 
   const showAddress =
     customization?.showAddress ??
@@ -126,16 +126,15 @@ export function InvoiceDocument({
     const pdfApiUrl = `/api/invoices/${invoice.id}/pdf`;
 
     try {
-      // 1. Fetch PDF blob and share File object if supported
-      if (typeof window !== "undefined" && navigator.canShare) {
+      if (typeof window !== "undefined" && navigator.share) {
         const res = await fetch(pdfApiUrl);
         if (res.ok) {
           const blob = await res.blob();
-          const pdfFile = new File([blob], `Invoice-${invoice.invoiceNumber}.pdf`, {
+          const pdfFile = new File([blob], `Invoice_${invoice.invoiceNumber}.pdf`, {
             type: "application/pdf",
           });
 
-          if (navigator.canShare({ files: [pdfFile] })) {
+          if (navigator.canShare && navigator.canShare({ files: [pdfFile] })) {
             await navigator.share({
               files: [pdfFile],
               title: `Invoice ${invoice.invoiceNumber}`,
@@ -146,22 +145,16 @@ export function InvoiceDocument({
         }
       }
 
-      // 2. Fallback for browsers without file sharing: Download PDF + WhatsApp link
-      window.open(pdfApiUrl, "_blank");
-      const cleanPhone = (invoice.customerPhone || "").replace(/[^0-9]/g, "");
-      if (cleanPhone) {
-        const msg = encodeURIComponent(`Invoice ${invoice.invoiceNumber} from ${businessName}.`);
-        const waUrl = `https://wa.me/${cleanPhone.length === 10 ? '91' + cleanPhone : cleanPhone}?text=${msg}`;
-        alert("PDF downloaded. Attach it in WhatsApp or Email.");
-        window.open(waUrl, "_blank");
-      } else {
-        alert("PDF downloaded. Attach it in WhatsApp or Email.");
-      }
+      // Fallback: download PDF file directly
+      const a = document.createElement("a");
+      a.href = pdfApiUrl;
+      a.download = `Invoice_${invoice.invoiceNumber}.pdf`;
+      a.target = "_blank";
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
     } catch (err: any) {
-      if (err?.name === "AbortError") {
-        // User cancelled native share sheet - ignore silently (Phase 4 requirement)
-        return;
-      }
+      if (err?.name === "AbortError") return;
       console.error("Share error:", err);
       window.open(pdfApiUrl, "_blank");
     }

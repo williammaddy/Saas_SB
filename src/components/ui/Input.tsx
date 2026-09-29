@@ -36,7 +36,7 @@ export const Input = React.forwardRef<HTMLInputElement, InputProps>(
               "py-2",
               error
                 ? "border-rose-300 text-rose-900 placeholder-rose-300 focus:border-rose-500 focus:ring-rose-500"
-                : "border-slate-300 text-slate-900 placeholder-slate-400 focus:border-indigo-500 focus:ring-indigo-500",
+                : "border-slate-300 text-slate-900 placeholder-slate-400 focus:border-slate-900 focus:ring-slate-900",
               className
             )}
             {...props}

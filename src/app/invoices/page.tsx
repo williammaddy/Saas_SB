@@ -68,7 +68,7 @@ export default function InvoicesPage() {
                 onClick={() => setStatusFilter(st)}
                 className={`px-3 py-1.5 rounded-lg capitalize transition-colors ${
                   statusFilter === st
-                    ? "bg-indigo-600 text-white font-bold shadow-sm"
+                    ? "bg-slate-900 text-white font-bold shadow-sm"
                     : "bg-slate-100 text-slate-600 hover:bg-slate-200"
                 }`}
               >
@@ -113,7 +113,7 @@ export default function InvoicesPage() {
                   <tbody className="divide-y divide-slate-100">
                     {invoices.map((inv) => (
                       <tr key={inv.id} className="hover:bg-slate-50/80 transition-colors">
-                        <td className="py-3.5 px-4 font-mono font-bold text-indigo-600">
+                        <td className="py-3.5 px-4 font-mono font-bold text-slate-900">
                           <Link href={`/invoices/${inv.id}`} className="hover:underline">
                             {inv.invoiceNumber}
                           </Link>

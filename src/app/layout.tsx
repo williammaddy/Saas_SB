@@ -8,7 +8,7 @@ const inter = Inter({
 });
 
 export const metadata: Metadata = {
-  title: "BizFlow",
+  title: "Laxzflow",
   description: "Simple business management for small shops, salons, and service teams.",
 };
 
@@ -16,7 +16,7 @@ export const viewport: Viewport = {
   width: "device-width",
   initialScale: 1,
   maximumScale: 1,
-  themeColor: "#4f46e5",
+  themeColor: "#6f5e51",
 };
 
 export default function RootLayout({
@@ -26,7 +26,7 @@ export default function RootLayout({
 }) {
   return (
     <html lang="en" className="h-full">
-      <body className={`${inter.className} h-full antialiased bg-slate-50 text-slate-900 flex flex-col`}>
+      <body className={`${inter.className} h-full antialiased bg-surface text-slate-900 flex flex-col`}>
         {children}
       </body>
     </html>

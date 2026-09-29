@@ -28,8 +28,8 @@ export function Badge({
     danger: "bg-rose-50 text-rose-700 border-rose-200",
     info: "bg-sky-50 text-sky-700 border-sky-200",
     neutral: "bg-gray-100 text-gray-700 border-gray-200",
-    product: "bg-indigo-50 text-indigo-700 border-indigo-200",
-    service: "bg-purple-50 text-purple-700 border-purple-200",
+    product: "bg-slate-900 text-white border-slate-900",
+    service: "bg-slate-100 text-slate-900 border-slate-300",
   };
 
   const sizeStyles = {

@@ -10,13 +10,13 @@ import { Palette, Layout, Eye, Check, Loader2, Image, FileText, ArrowLeft } from
 import Link from "next/link";
 
 const BRAND_COLORS = [
-  { name: "Indigo", hex: "#4f46e5" },
-  { name: "Blue", hex: "#2563eb" },
-  { name: "Emerald", hex: "#059669" },
+  { name: "Brown Dark", hex: "#6f5e51" },
+  { name: "Brown Mid", hex: "#9c8878" },
+  { name: "Brown Light", hex: "#c4b2a2" },
   { name: "Slate", hex: "#334155" },
+  { name: "Emerald", hex: "#059669" },
   { name: "Rose", hex: "#e11d48" },
   { name: "Amber", hex: "#d97706" },
-  { name: "Purple", hex: "#7c3aed" },
 ];
 
 // Sample mock invoice data for live preview
@@ -100,7 +100,7 @@ export default function InvoiceCustomizationPage() {
 
   // Form states for Invoice Customization
   const [invoiceTemplate, setInvoiceTemplate] = useState<"CLASSIC" | "MODERN" | "MINIMAL" | "COMPACT">("CLASSIC");
-  const [brandColor, setBrandColor] = useState("#4f46e5");
+  const [brandColor, setBrandColor] = useState("#6f5e51");
   const [showAddress, setShowAddress] = useState(true);
   const [showContact, setShowContact] = useState(true);
   const [showGstin, setShowGstin] = useState(true);
@@ -177,7 +177,7 @@ export default function InvoiceCustomizationPage() {
     return (
       <AppLayout title="Invoice Customization">
         <div className="flex items-center justify-center py-20">
-          <Loader2 className="w-6 h-6 text-indigo-600 animate-spin" />
+          <Loader2 className="w-6 h-6 text-brand-700 animate-spin" />
         </div>
       </AppLayout>
     );
@@ -222,7 +222,7 @@ export default function InvoiceCustomizationPage() {
               {/* 1. Template Selection */}
               <Card>
                 <CardHeader>
-                  <div className="flex items-center gap-2 text-indigo-600">
+                  <div className="flex items-center gap-2 text-brand-700">
                     <Layout className="w-4 h-4" />
                     <CardTitle>Invoice Template</CardTitle>
                   </div>
@@ -257,14 +257,14 @@ export default function InvoiceCustomizationPage() {
                       onClick={() => setInvoiceTemplate(tpl.id as any)}
                       className={`p-3 rounded-xl border text-left transition-all ${
                         invoiceTemplate === tpl.id
-                          ? "border-indigo-600 bg-indigo-50/60 ring-2 ring-indigo-600/20"
+                          ? "border-brand-700 bg-brand-50/60 ring-2 ring-brand-700/20"
                           : "border-slate-200 bg-white hover:border-slate-300"
                       }`}
                     >
                       <div className="flex items-center justify-between">
                         <span className="font-bold text-xs text-slate-900">{tpl.title}</span>
                         {invoiceTemplate === tpl.id && (
-                          <Check className="w-3.5 h-3.5 text-indigo-600" />
+                          <Check className="w-3.5 h-3.5 text-brand-700" />
                         )}
                       </div>
                       <p className="text-[11px] text-slate-500 mt-1 leading-tight">{tpl.desc}</p>
@@ -276,7 +276,7 @@ export default function InvoiceCustomizationPage() {
               {/* 2. Brand Accent Color */}
               <Card>
                 <CardHeader>
-                  <div className="flex items-center gap-2 text-indigo-600">
+                  <div className="flex items-center gap-2 text-brand-700">
                     <Palette className="w-4 h-4" />
                     <CardTitle>Brand Accent Color</CardTitle>
                   </div>
@@ -314,7 +314,7 @@ export default function InvoiceCustomizationPage() {
               {/* 3. Business Branding & Logo */}
               <Card>
                 <CardHeader>
-                  <div className="flex items-center gap-2 text-indigo-600">
+                  <div className="flex items-center gap-2 text-brand-700">
                     <Image className="w-4 h-4" />
                     <CardTitle>Logo & Business Details</CardTitle>
                   </div>
@@ -336,7 +336,7 @@ export default function InvoiceCustomizationPage() {
                         type="checkbox"
                         checked={showAddress}
                         onChange={(e) => setShowAddress(e.target.checked)}
-                        className="rounded text-indigo-600 focus:ring-indigo-500"
+                        className="rounded text-brand-700 focus:ring-brand-600"
                       />
                       <span>Show Business Address on Bills</span>
                     </label>
@@ -346,7 +346,7 @@ export default function InvoiceCustomizationPage() {
                         type="checkbox"
                         checked={showContact}
                         onChange={(e) => setShowContact(e.target.checked)}
-                        className="rounded text-indigo-600 focus:ring-indigo-500"
+                        className="rounded text-brand-700 focus:ring-brand-600"
                       />
                       <span>Show Phone & Email Contact Info</span>
                     </label>
@@ -356,7 +356,7 @@ export default function InvoiceCustomizationPage() {
                         type="checkbox"
                         checked={showGstin}
                         onChange={(e) => setShowGstin(e.target.checked)}
-                        className="rounded text-indigo-600 focus:ring-indigo-500"
+                        className="rounded text-brand-700 focus:ring-brand-600"
                       />
                       <span>Show Business GSTIN on Bills</span>
                     </label>
@@ -384,10 +384,10 @@ export default function InvoiceCustomizationPage() {
           <div className="lg:col-span-7 sticky top-4">
             <div className="mb-2 flex items-center justify-between">
               <div className="flex items-center gap-2 text-slate-700 font-bold text-xs">
-                <Eye className="w-4 h-4 text-indigo-600" />
+                <Eye className="w-4 h-4 text-brand-700" />
                 <span>LIVE PREVIEW</span>
               </div>
-              <span className="text-[11px] bg-indigo-50 text-indigo-700 font-semibold px-2.5 py-0.5 rounded-full">
+              <span className="text-[11px] bg-brand-50 text-brand-700 font-semibold px-2.5 py-0.5 rounded-full">
                 Template: {invoiceTemplate}
               </span>
             </div>

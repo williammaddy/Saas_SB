@@ -54,7 +54,7 @@ export default function CustomerDetailPage() {
     return (
       <AppLayout title="Customer Statement">
         <div className="flex items-center justify-center py-20">
-          <Loader2 className="w-6 h-6 text-indigo-600 animate-spin" />
+          <Loader2 className="w-6 h-6 text-slate-900 animate-spin" />
         </div>
       </AppLayout>
     );
@@ -90,7 +90,7 @@ export default function CustomerDetailPage() {
           <Card className="md:col-span-1 border-slate-200">
             <CardContent className="p-5 space-y-3">
               <div className="flex items-center gap-3">
-                <div className="w-11 h-11 rounded-full bg-indigo-100 text-indigo-700 flex items-center justify-center font-bold text-lg">
+                <div className="w-11 h-11 rounded-full bg-slate-100 text-slate-800 flex items-center justify-center font-bold text-lg">
                   {customer.name.charAt(0).toUpperCase()}
                 </div>
                 <div>
@@ -188,7 +188,7 @@ export default function CustomerDetailPage() {
                   <tbody className="divide-y divide-slate-100">
                     {invoices.map((inv: any) => (
                       <tr key={inv.id} className="hover:bg-slate-50/80 transition-colors">
-                        <td className="py-3 px-4 font-mono font-bold text-indigo-600">
+                        <td className="py-3 px-4 font-mono font-bold text-slate-900">
                           <Link href={`/invoices/${inv.id}`} className="hover:underline">
                             {inv.invoiceNumber}
                           </Link>

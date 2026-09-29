@@ -57,10 +57,10 @@ export function AppLayout({ title, actions, children }: AppLayoutProps) {
 
   if (loading) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-slate-50">
+      <div className="min-h-screen flex items-center justify-center bg-surface">
         <div className="flex flex-col items-center gap-3">
-          <Loader2 className="w-8 h-8 text-indigo-600 animate-spin" />
-          <p className="text-sm font-medium text-slate-500">Loading BizFlow</p>
+          <Loader2 className="w-8 h-8 text-brand-700 animate-spin" />
+          <p className="text-sm font-medium text-slate-500">Loading Laxzflow</p>
         </div>
       </div>
     );
@@ -68,9 +68,9 @@ export function AppLayout({ title, actions, children }: AppLayoutProps) {
 
   if (sessionError) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-slate-50 px-4">
+      <div className="min-h-screen flex items-center justify-center bg-surface px-4">
         <div className="max-w-md text-center space-y-2">
-          <p className="text-sm font-semibold text-slate-900">Can’t load BizFlow</p>
+          <p className="text-sm font-semibold text-slate-900">Can’t load Laxzflow</p>
           <p className="text-sm text-slate-600">{sessionError}</p>
         </div>
       </div>
@@ -78,7 +78,7 @@ export function AppLayout({ title, actions, children }: AppLayoutProps) {
   }
 
   return (
-    <div className="min-h-screen bg-slate-50 flex">
+    <div className="min-h-screen bg-surface flex">
       {/* Sidebar Navigation */}
       <Sidebar
         organization={organization}
